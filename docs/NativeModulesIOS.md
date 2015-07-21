@@ -50,7 +50,7 @@ RCT_EXPORT_METHOD(addEvent:(NSString *)name location:(NSString *)location)
 Now, from your JavaScript file you can call the method like this:
 
 ```javascript
-var CalendarManager = require('NativeModules').CalendarManager;
+var CalendarManager = require('react-native').NativeModules.CalendarManager;
 CalendarManager.addEvent('Birthday Party', '4 Privet Drive, Surrey');
 ```
 
@@ -256,9 +256,9 @@ The native module can signal events to JavaScript without being invoked directly
 JavaScript code can subscribe to these events:
 
 ```javascript
-var { DeviceEventEmitter } = require('react-native');
+var { NativeAppEventEmitter } = require('react-native');
 
-var subscription = DeviceEventEmitter.addListener(
+var subscription = NativeAppEventEmitter.addListener(
   'EventReminder',
   (reminder) => console.log(reminder.name)
 );
