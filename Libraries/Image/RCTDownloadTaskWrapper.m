@@ -62,11 +62,10 @@ static void *const RCTDownloadTaskWrapperProgressBlockKey = (void *)&RCTDownload
 
 - (NSURLSessionDownloadTask *)downloadData:(NSURL *)url progressBlock:(RCTDataProgressBlock)progressBlock completionBlock:(RCTDataCompletionBlock)completionBlock
 {
-  NSURLSessionDownloadTask *task = [_URLSession downloadTaskWithURL:url completionHandler:nil];
+  NSURLSessionDownloadTask *task = [_URLSession downloadTaskWithURL:url];
   task.rct_completionBlock = completionBlock;
   task.rct_progressBlock = progressBlock;
 
-  [task resume];
   return task;
 }
 

@@ -205,12 +205,12 @@ map syntax so that values can be extracted from complex event objects.  The
 first level is an array to allow mapping across multiple args, and that array
 contains nested objects.  In the example, you can see that `scrollX` maps to
 `event.nativeEvent.contentOffset.x` (`event` is normally the first arg to the
-handler), and `pan.x` maps to `gestureState.dx` (`gestureState` is the second
-arg passed to the `PanResponder` handler).
+handler), and `pan.x` and `pan.y` map to `gestureState.dx` and `gestureState.dy`,
+respectively (`gestureState` is the second arg passed to the `PanResponder` handler).
 
 ```javascript
 onScroll={Animated.event(
-  [{nativeEvent: {contentOffset: {y: pan.y}}}]   // pan.y = e.nativeEvent.contentOffset.y
+  [{nativeEvent: {contentOffset: {x: scrollX}}}]   // scrollX = e.nativeEvent.contentOffset.x
 )}
 onPanResponderMove={Animated.event([
   null,                                          // ignore the native event
@@ -310,7 +310,7 @@ animations that underlies all of the JavaScript-based animation APIs.  In
 general, you shouldn't need to call this yourself - the animation API's will
 manage frame updates for you.
 
-### react-tween-state
+### react-tween-state (Not recommended - use [Animated](#animated) instead)
 
 [react-tween-state](https://github.com/chenglou/react-tween-state) is a
 minimal library that does exactly what its name suggests: it *tweens* a
@@ -377,7 +377,7 @@ Here we animated the opacity, but as you might guess, we can animate any
 numeric value. Read more about react-tween-state in its
 [README](https://github.com/chenglou/react-tween-state).
 
-### Rebound
+### Rebound (Not recommended - use [Animated](#animated) instead)
 
 [Rebound.js](https://github.com/facebook/rebound-js) is a JavaScript port of
 [Rebound for Android](https://github.com/facebook/rebound). It is

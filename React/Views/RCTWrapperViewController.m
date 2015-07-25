@@ -57,6 +57,20 @@
   _currentBottomLayoutGuide = self.bottomLayoutGuide;
 }
 
+static UIView *RCTFindNavBarShadowViewInView(UIView *view)
+{
+  if ([view isKindOfClass:[UIImageView class]] && view.bounds.size.height <= 1) {
+    return view;
+  }
+  for (UIView *subview in view.subviews) {
+    UIView *shadowView = RCTFindNavBarShadowViewInView(subview);
+    if (shadowView) {
+      return shadowView;
+    }
+  }
+  return nil;
+}
+
 - (void)viewWillAppear:(BOOL)animated
 {
   [super viewWillAppear:animated];
@@ -65,12 +79,8 @@
   if ([self.parentViewController isKindOfClass:[UINavigationController class]])
   {
     [self.navigationController
-      setNavigationBarHidden:_navItem.navigationBarHidden
-      animated:animated];
-
-    if (!_navItem) {
-      return;
-    }
+     setNavigationBarHidden:_navItem.navigationBarHidden
+     animated:animated];
 
     UINavigationBar *bar = self.navigationController.navigationBar;
 
@@ -136,7 +146,8 @@
   // finishes, be it a swipe to go back or a standard tap on the back button
   [super didMoveToParentViewController:parent];
   if (parent == nil || [parent isKindOfClass:[UINavigationController class]]) {
-    [self.navigationListener wrapperViewController:self didMoveToNavigationController:(UINavigationController *)parent];
+    [self.navigationListener wrapperViewController:self
+                     didMoveToNavigationController:(UINavigationController *)parent];
   }
 }
 

@@ -479,7 +479,13 @@ class SpringAnimation extends Animation {
     if (this._tension !== 0) {
       isDisplacement = Math.abs(this._toValue - position) <= this._restDisplacementThreshold;
     }
+
     if (isOvershooting || (isVelocity && isDisplacement)) {
+      if (this._tension !== 0) {
+        // Ensure that we end up with a round value
+        this._onUpdate(this._toValue);
+      }
+
       this.__debouncedOnEnd({finished: true});
       return;
     }
@@ -1177,7 +1183,7 @@ var parallel = function(
       }
 
       animations.forEach((animation, idx) => {
-        animation.start(endResult => {
+        var cb = function(endResult) {
           hasEnded[idx] = true;
           doneCount++;
           if (doneCount === animations.length) {
@@ -1189,7 +1195,13 @@ var parallel = function(
           if (!endResult.finished && stopTogether) {
             result.stop();
           }
-        });
+        };
+
+        if (!animation) {
+          cb({finished: true});
+        } else {
+          animation.start(cb);
+        }
       });
     },
 
