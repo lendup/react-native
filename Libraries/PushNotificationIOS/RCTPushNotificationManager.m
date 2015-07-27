@@ -10,7 +10,6 @@
 #import "RCTPushNotificationManager.h"
 
 #import "RCTBridge.h"
-#import "RCTConvert.h"
 #import "RCTEventDispatcher.h"
 #import "RCTUtils.h"
 
@@ -26,20 +25,6 @@
 
 NSString *const RCTRemoteNotificationReceived = @"RemoteNotificationReceived";
 NSString *const RCTRemoteNotificationsRegistered = @"RemoteNotificationsRegistered";
-NSString *const RCTRemoteNotificationRegisteredError = @"RemoteNotificationRegisteredError";
-
-@implementation RCTConvert (UILocalNotification)
-
-+ (UILocalNotification *)UILocalNotification:(id)json
-{
-  NSDictionary *details = [self NSDictionary:json];
-  UILocalNotification *notification = [[UILocalNotification alloc] init];
-  notification.fireDate = [RCTConvert NSDate:details[@"fireDate"]] ?: [NSDate date];
-  notification.alertBody = [RCTConvert NSString:details[@"alertBody"]];
-  return notification;
-}
-
-@end
 
 @implementation RCTPushNotificationManager
 {
@@ -61,10 +46,6 @@ RCT_EXPORT_MODULE()
                                              selector:@selector(handleRemoteNotificationsRegistered:)
                                                  name:RCTRemoteNotificationsRegistered
                                                object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                              selector:@selector(handleRemoteNotificationRegisteredError:)
-                                                  name:RCTRemoteNotificationRegisteredError
-                                                object:nil];
   }
   return self;
 }
@@ -103,13 +84,6 @@ RCT_EXPORT_MODULE()
                                                     userInfo:userInfo];
 }
 
-+ (void)application:(__unused UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
-{
-  [[NSNotificationCenter defaultCenter] postNotificationName:RCTRemoteNotificationRegisteredError
-                                                      object:self
-                                                    userInfo:error.userInfo];
-}
-
 + (void)application:(__unused UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification
 {
   [[NSNotificationCenter defaultCenter] postNotificationName:RCTRemoteNotificationReceived
@@ -126,12 +100,6 @@ RCT_EXPORT_MODULE()
 - (void)handleRemoteNotificationsRegistered:(NSNotification *)notification
 {
   [_bridge.eventDispatcher sendDeviceEventWithName:@"remoteNotificationsRegistered"
-                                              body:[notification userInfo]];
-}
-
-- (void)handleRemoteNotificationRegisteredError:(NSNotification *)notification
-{
-  [_bridge.eventDispatcher sendDeviceEventWithName:@"remoteNotificationsRegisteredError"
                                               body:[notification userInfo]];
 }
 
@@ -177,6 +145,7 @@ RCT_EXPORT_METHOD(requestPermissions:(NSDictionary *)permissions)
   } else {
     [[UIApplication sharedApplication] registerForRemoteNotificationTypes:types];
   }
+
 }
 
 RCT_EXPORT_METHOD(abandonPermissions)
@@ -212,17 +181,6 @@ RCT_EXPORT_METHOD(checkPermissions:(RCTResponseSenderBlock)callback)
   return @{
     @"initialNotification": RCTNullIfNil(_initialNotification),
   };
-}
-
-RCT_EXPORT_METHOD(presentLocalNotification:(UILocalNotification *)notification)
-{
-  [[UIApplication sharedApplication] presentLocalNotificationNow:notification];
-}
-
-
-RCT_EXPORT_METHOD(scheduleLocalNotification:(UILocalNotification *)notification)
-{
-  [[UIApplication sharedApplication] scheduleLocalNotification:notification];
 }
 
 @end

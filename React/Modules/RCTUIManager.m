@@ -26,6 +26,7 @@
 #import "RCTScrollableProtocol.h"
 #import "RCTShadowView.h"
 #import "RCTSparseArray.h"
+#import "RCTTouchHandler.h"
 #import "RCTUtils.h"
 #import "RCTView.h"
 #import "RCTViewManager.h"
@@ -1013,9 +1014,7 @@ RCT_EXPORT_METHOD(measure:(NSNumber *)reactTag
   [self addUIBlock:^(__unused RCTUIManager *uiManager, RCTSparseArray *viewRegistry) {
     UIView *view = viewRegistry[reactTag];
     if (!view) {
-      // this view was probably collapsed out
-      RCTLogWarn(@"measure cannot find view with tag #%@", reactTag);
-      callback(@[]);
+      RCTLogError(@"measure cannot find view with tag #%@", reactTag);
       return;
     }
     CGRect frame = view.frame;
@@ -1408,13 +1407,8 @@ RCT_EXPORT_METHOD(clearJSResponder)
   for (RCTViewManager *manager in _viewManagers.allValues) {
     if (RCTClassOverridesInstanceMethod([manager class], @selector(customDirectEventTypes))) {
       NSDictionary *eventTypes = [manager customDirectEventTypes];
-      if (RCT_DEV) {
-        for (NSString *eventName in eventTypes) {
-          id eventType = customDirectEventTypes[eventName];
-          RCTAssert(!eventType || [eventType isEqual:eventTypes[eventName]],
-                    @"Event '%@' registered multiple times with different "
-                    "properties.", eventName);
-        }
+      for (NSString *eventName in eventTypes) {
+        RCTAssert(!customDirectEventTypes[eventName], @"Event '%@' registered multiple times.", eventName);
       }
       [customDirectEventTypes addEntriesFromDictionary:eventTypes];
     }

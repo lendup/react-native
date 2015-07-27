@@ -1,11 +1,11 @@
 {
   "name": "react-native",
-  "version": "0.6.3",
+  "version": "0.8.0",
   "description": "A framework for building native apps using React",
   "license": "BSD-3-Clause",
   "repository": {
     "type": "git",
-    "url": "git@github.com:facebook/react-native.git"
+    "url": "git+ssh://git@github.com/facebook/react-native.git"
   },
   "jest": {
     "scriptPreprocessor": "jestSupport/scriptPreprocess.js",
@@ -34,8 +34,7 @@
     "init.sh",
     "LICENSE",
     "PATENTS",
-    "README.md",
-    "jestSupport"
+    "README.md"
   ],
   "scripts": {
     "test": "jest",
@@ -48,7 +47,8 @@
   "dependencies": {
     "absolute-path": "0.0.0",
     "babel": "5.4.3",
-    "babel-core": "^5.6.4",
+    "babel-core": "^5.6.11",
+    "bluebird": "^2.9.21",
     "chalk": "^1.0.0",
     "connect": "2.8.3",
     "debug": "~2.1.0",
@@ -66,7 +66,7 @@
     "sane": "^1.1.2",
     "semver": "^4.3.6",
     "source-map": "0.1.31",
-    "stacktrace-parser": "frantic/stacktrace-parser#493c5e5638",
+    "stacktrace-parser": "github:frantic/stacktrace-parser#493c5e5638",
     "uglify-js": "~2.4.16",
     "underscore": "1.7.0",
     "wordwrap": "^1.0.0",
@@ -75,9 +75,55 @@
     "yargs": "1.3.2"
   },
   "devDependencies": {
-    "jest-cli": "facebook/jest#0.5.x",
+    "jest-cli": "github:facebook/jest#0.5.x",
     "babel-eslint": "3.1.5",
     "eslint": "0.21.2",
     "eslint-plugin-react": "2.3.0"
-  }
+  },
+  "gitHead": "a767c7b5f366843fac481eb7899e4463b1e72179",
+  "bugs": {
+    "url": "https://github.com/facebook/react-native/issues"
+  },
+  "homepage": "https://github.com/facebook/react-native#readme",
+  "_id": "react-native@0.8.0",
+  "_shasum": "d634a78e7e6f9b8e651463afd577d9d68b8bc153",
+  "_from": "react-native@>=0.8.0 <0.9.0",
+  "_npmVersion": "2.10.1",
+  "_nodeVersion": "2.3.4",
+  "_npmUser": {
+    "name": "brentvatne",
+    "email": "brentvatne@gmail.com"
+  },
+  "dist": {
+    "shasum": "d634a78e7e6f9b8e651463afd577d9d68b8bc153",
+    "tarball": "http://registry.npmjs.org/react-native/-/react-native-0.8.0.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "spicyj",
+      "email": "ben@benalpert.com"
+    },
+    {
+      "name": "frantic",
+      "email": "alex.frantic@gmail.com"
+    },
+    {
+      "name": "vjeux",
+      "email": "vjeuxx@gmail.com"
+    },
+    {
+      "name": "amasad",
+      "email": "amjad.masad@gmail.com"
+    },
+    {
+      "name": "ericvicenti",
+      "email": "ericvicenti@gmail.com"
+    },
+    {
+      "name": "brentvatne",
+      "email": "brentvatne@gmail.com"
+    }
+  ],
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/react-native/-/react-native-0.8.0.tgz"
 }

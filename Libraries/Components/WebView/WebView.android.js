@@ -36,8 +36,7 @@ var WebView = React.createClass({
   propTypes: {
     renderError: PropTypes.func, // view to show if there's an error
     renderLoading: PropTypes.func, // loading indicator to show
-    url: PropTypes.string,
-    html: PropTypes.string,
+    url: PropTypes.string.isRequired,
     automaticallyAdjustContentInsets: PropTypes.bool,
     contentInset: EdgeInsetsPropType,
     onNavigationStateChange: PropTypes.func,
@@ -103,7 +102,6 @@ var WebView = React.createClass({
         key="webViewKey"
         style={webViewStyles}
         url={this.props.url}
-        html={this.props.html}
         injectedJavaScript={this.props.injectedJavaScript}
         userAgent={this.props.userAgent}
         javaScriptEnabledAndroid={this.props.javaScriptEnabledAndroid}
@@ -185,7 +183,6 @@ var WebView = React.createClass({
 
 var RCTWebView = createReactNativeComponentClass({
   validAttributes: merge(ReactNativeViewAttributes.UIView, {
-    html: true,
     injectedJavaScript: true,
     javaScriptEnabledAndroid: true,
     url: true,

@@ -21,7 +21,6 @@ var TransformPropTypes = require('TransformPropTypes');
 var ViewStylePropTypes = {
   ...LayoutPropTypes,
   ...TransformPropTypes,
-  backfaceVisibility: ReactPropTypes.oneOf(['visible', 'hidden']),
   backgroundColor: ReactPropTypes.string,
   borderColor: ReactPropTypes.string,
   borderTopColor: ReactPropTypes.string,

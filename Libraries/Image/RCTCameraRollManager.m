@@ -14,7 +14,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "RCTBridge.h"
 #import "RCTImageLoader.h"
 #import "RCTLog.h"
 #import "RCTUtils.h"
@@ -23,13 +22,11 @@
 
 RCT_EXPORT_MODULE()
 
-@synthesize bridge = _bridge;
-
 RCT_EXPORT_METHOD(saveImageWithTag:(NSString *)imageTag
                   successCallback:(RCTResponseSenderBlock)successCallback
                   errorCallback:(RCTResponseErrorBlock)errorCallback)
 {
-  [RCTImageLoader loadImageWithTag:imageTag bridge:_bridge callback:^(NSError *loadError, UIImage *loadedImage) {
+  [RCTImageLoader loadImageWithTag:imageTag callback:^(NSError *loadError, UIImage *loadedImage) {
     if (loadError) {
       errorCallback(loadError);
       return;

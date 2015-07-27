@@ -32,7 +32,10 @@
 - (instancetype)initWithContentView:(UIView *)contentView
                     eventDispatcher:(RCTEventDispatcher *)eventDispatcher
 {
-  if (self = [super initWithNibName:nil bundle:nil]) {
+  RCTAssertParam(contentView);
+  RCTAssertParam(eventDispatcher);
+
+  if ((self = [super initWithNibName:nil bundle:nil])) {
     _contentView = contentView;
     _eventDispatcher = eventDispatcher;
     self.automaticallyAdjustsScrollViewInsets = NO;
@@ -43,11 +46,14 @@
 - (instancetype)initWithNavItem:(RCTNavItem *)navItem
                 eventDispatcher:(RCTEventDispatcher *)eventDispatcher
 {
-  if (self = [self initWithContentView:navItem eventDispatcher:eventDispatcher]) {
+  if ((self = [self initWithContentView:navItem eventDispatcher:eventDispatcher])) {
     _navItem = navItem;
   }
   return self;
 }
+
+RCT_NOT_IMPLEMENTED(-initWithNibName:(NSString *)nn bundle:(NSBundle *)nb)
+RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
 
 - (void)viewWillLayoutSubviews
 {
@@ -55,20 +61,6 @@
 
   _currentTopLayoutGuide = self.topLayoutGuide;
   _currentBottomLayoutGuide = self.bottomLayoutGuide;
-}
-
-static UIView *RCTFindNavBarShadowViewInView(UIView *view)
-{
-  if ([view isKindOfClass:[UIImageView class]] && view.bounds.size.height <= 1) {
-    return view;
-  }
-  for (UIView *subview in view.subviews) {
-    UIView *shadowView = RCTFindNavBarShadowViewInView(subview);
-    if (shadowView) {
-      return shadowView;
-    }
-  }
-  return nil;
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -79,12 +71,14 @@ static UIView *RCTFindNavBarShadowViewInView(UIView *view)
   if ([self.parentViewController isKindOfClass:[UINavigationController class]])
   {
     [self.navigationController
-     setNavigationBarHidden:_navItem.navigationBarHidden
-     animated:animated];
+      setNavigationBarHidden:_navItem.navigationBarHidden
+      animated:animated];
+
+    if (!_navItem) {
+      return;
+    }
 
     UINavigationBar *bar = self.navigationController.navigationBar;
-
-    //NOTE: Customized navigation bar to hide hairline border
     [bar setBackgroundImage:[UIImage new]
                    forBarPosition:UIBarPositionAny
                        barMetrics:UIBarMetricsDefault];
@@ -95,7 +89,6 @@ static UIView *RCTFindNavBarShadowViewInView(UIView *view)
     bar.barTintColor = _navItem.barTintColor;
     bar.tintColor = _navItem.tintColor;
     bar.translucent = _navItem.translucent;
-
     if (_navItem.titleTextColor) {
       [bar setTitleTextAttributes:@{
         NSForegroundColorAttributeName : _navItem.titleTextColor,
@@ -146,8 +139,7 @@ static UIView *RCTFindNavBarShadowViewInView(UIView *view)
   // finishes, be it a swipe to go back or a standard tap on the back button
   [super didMoveToParentViewController:parent];
   if (parent == nil || [parent isKindOfClass:[UINavigationController class]]) {
-    [self.navigationListener wrapperViewController:self
-                     didMoveToNavigationController:(UINavigationController *)parent];
+    [self.navigationListener wrapperViewController:self didMoveToNavigationController:(UINavigationController *)parent];
   }
 }
 

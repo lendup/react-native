@@ -10,7 +10,6 @@
 
 #import <UIKit/UIKit.h>
 
-#import "RCTBridge.h"
 #import "RCTImageLoader.h"
 #import "RCTUtils.h"
 
@@ -20,8 +19,6 @@
 }
 
 RCT_EXPORT_MODULE()
-
-@synthesize bridge = _bridge;
 
 - (BOOL)canHandleRequest:(NSURLRequest *)request
 {
@@ -33,7 +30,7 @@ RCT_EXPORT_MODULE()
 {
   NSNumber *requestToken = @(++_currentToken);
   NSString *URLString = [request.URL absoluteString];
-  [RCTImageLoader loadImageWithTag:URLString bridge:_bridge callback:^(NSError *error, UIImage *image) {
+  [RCTImageLoader loadImageWithTag:URLString callback:^(NSError *error, UIImage *image) {
     if (error) {
       [delegate URLRequest:requestToken didCompleteWithError:error];
       return;

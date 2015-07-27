@@ -29,7 +29,7 @@
 var ListViewDataSource = require('ListViewDataSource');
 var React = require('React');
 var RCTUIManager = require('NativeModules').UIManager;
-var RCTScrollViewManager = require('NativeModules').ScrollViewManager;
+var RKScrollViewManager = require('NativeModules').ScrollViewManager;
 var ScrollView = require('ScrollView');
 var ScrollResponder = require('ScrollResponder');
 var StaticRenderer = require('StaticRenderer');
@@ -209,7 +209,7 @@ var ListView = React.createClass({
    */
   getMetrics: function() {
     return {
-      contentLength: this.scrollProperties.contentLength,
+      contentHeight: this.scrollProperties.contentHeight,
       totalRows: this.props.dataSource.getRowCount(),
       renderedRows: this.state.curRenderedRowsCount,
       visibleRows: Object.keys(this._visibleRows).length,
@@ -255,9 +255,9 @@ var ListView = React.createClass({
   componentWillMount: function() {
     // this data should never trigger a render pass, so don't put in state
     this.scrollProperties = {
-      visibleLength: null,
-      contentLength: null,
-      offset: 0
+      visibleHeight: null,
+      contentHeight: null,
+      offsetY: 0
     };
     this._childFrames = [];
     this._visibleRows = {};
@@ -409,31 +409,28 @@ var ListView = React.createClass({
       scrollComponent.getInnerViewNode(),
       React.findNodeHandle(scrollComponent),
       logError,
-      this._setScrollContentLength
+      this._setScrollContentHeight
     );
     RCTUIManager.measureLayoutRelativeToParent(
       React.findNodeHandle(scrollComponent),
       logError,
-      this._setScrollVisibleLength
+      this._setScrollVisibleHeight
     );
 
-    // RCTScrollViewManager.calculateChildFrames is not available on
-    // every platform
-    RCTScrollViewManager && RCTScrollViewManager.calculateChildFrames &&
-      RCTScrollViewManager.calculateChildFrames(
+    // RKScrollViewManager.calculateChildFrames not available on every platform
+    RKScrollViewManager && RKScrollViewManager.calculateChildFrames &&
+      RKScrollViewManager.calculateChildFrames(
         React.findNodeHandle(scrollComponent),
         this._updateChildFrames,
       );
   },
 
-  _setScrollContentLength: function(left, top, width, height) {
-    this.scrollProperties.contentLength = !this.props.horizontal ?
-      height : width;
+  _setScrollContentHeight: function(left, top, width, height) {
+    this.scrollProperties.contentHeight = height;
   },
 
-  _setScrollVisibleLength: function(left, top, width, height) {
-    this.scrollProperties.visibleLength = !this.props.horizontal ?
-      height : width;
+  _setScrollVisibleHeight: function(left, top, width, height) {
+    this.scrollProperties.visibleHeight = height;
     this._updateVisibleRows();
     this._renderMoreRowsIfNeeded();
   },
@@ -443,8 +440,8 @@ var ListView = React.createClass({
   },
 
   _renderMoreRowsIfNeeded: function() {
-    if (this.scrollProperties.contentLength === null ||
-      this.scrollProperties.visibleLength === null ||
+    if (this.scrollProperties.contentHeight === null ||
+      this.scrollProperties.visibleHeight === null ||
       this.state.curRenderedRowsCount === this.props.dataSource.getRowCount()) {
       return;
     }
@@ -474,9 +471,9 @@ var ListView = React.createClass({
   },
 
   _getDistanceFromEnd: function(scrollProperties) {
-    return scrollProperties.contentLength -
-      scrollProperties.visibleLength -
-      scrollProperties.offset;
+    return scrollProperties.contentHeight -
+      scrollProperties.visibleHeight -
+      scrollProperties.offsetY;
   },
 
   _updateVisibleRows: function(updatedFrames) {
@@ -488,10 +485,9 @@ var ListView = React.createClass({
         this._childFrames[newFrame.index] = merge(newFrame);
       });
     }
-    var isVertical = !this.props.horizontal;
     var dataSource = this.props.dataSource;
-    var visibleMin = this.scrollProperties.offset;
-    var visibleMax = visibleMin + this.scrollProperties.visibleLength;
+    var visibleTop = this.scrollProperties.offsetY;
+    var visibleBottom = visibleTop + this.scrollProperties.visibleHeight;
     var allRowIDs = dataSource.rowIdentities;
 
     var header = this.props.renderHeader && this.props.renderHeader();
@@ -519,9 +515,9 @@ var ListView = React.createClass({
           break;
         }
         var rowVisible = visibleSection[rowID];
-        var min = isVertical ? frame.y : frame.x;
-        var max = min + (isVertical ? frame.height : frame.width);
-        if (min > visibleMax || max < visibleMin) {
+        var top = frame.y;
+        var bottom = top + frame.height;
+        if (top > visibleBottom || bottom < visibleTop) {
           if (rowVisible) {
             visibilityChanged = true;
             delete visibleSection[rowID];
@@ -549,23 +545,16 @@ var ListView = React.createClass({
   },
 
   _onScroll: function(e) {
-    var isVertical = !this.props.horizontal;
-    this.scrollProperties.visibleLength = e.nativeEvent.layoutMeasurement[
-      isVertical ? 'height' : 'width'
-    ];
-    this.scrollProperties.contentLength = e.nativeEvent.contentSize[
-      isVertical ? 'height' : 'width'
-    ];
-    this.scrollProperties.offset = e.nativeEvent.contentOffset[
-      isVertical ? 'y' : 'x'
-    ];
+    this.scrollProperties.visibleHeight = e.nativeEvent.layoutMeasurement.height;
+    this.scrollProperties.contentHeight = e.nativeEvent.contentSize.height;
+    this.scrollProperties.offsetY = e.nativeEvent.contentOffset.y;
     this._updateVisibleRows(e.nativeEvent.updatedChildFrames);
     var nearEnd = this._getDistanceFromEnd(this.scrollProperties) < this.props.onEndReachedThreshold;
     if (nearEnd &&
         this.props.onEndReached &&
-        this.scrollProperties.contentLength !== this._sentEndForContentLength &&
+        this.scrollProperties.contentHeight !== this._sentEndForContentHeight &&
         this.state.curRenderedRowsCount === this.props.dataSource.getRowCount()) {
-      this._sentEndForContentLength = this.scrollProperties.contentLength;
+      this._sentEndForContentHeight = this.scrollProperties.contentHeight;
       this.props.onEndReached(e);
     } else {
       this._renderMoreRowsIfNeeded();

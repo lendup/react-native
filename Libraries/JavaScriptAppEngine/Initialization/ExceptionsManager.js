@@ -25,16 +25,13 @@ type Exception = {
   message: string;
 }
 
-var exceptionID = 0;
-
 function reportException(e: Exception, isFatal: bool, stack?: any) {
-  var currentExceptionID = ++exceptionID;
   if (RCTExceptionsManager) {
     if (!stack) {
       stack = parseErrorStack(e);
     }
     if (isFatal) {
-      RCTExceptionsManager.reportFatalException(e.message, stack, currentExceptionID);
+      RCTExceptionsManager.reportFatalException(e.message, stack);
     } else {
       RCTExceptionsManager.reportSoftException(e.message, stack);
     }
@@ -42,7 +39,7 @@ function reportException(e: Exception, isFatal: bool, stack?: any) {
       (sourceMapPromise = sourceMapPromise || loadSourceMap())
         .then(map => {
           var prettyStack = parseErrorStack(e, map);
-          RCTExceptionsManager.updateExceptionMessage(e.message, prettyStack, currentExceptionID);
+          RCTExceptionsManager.updateExceptionMessage(e.message, prettyStack);
         })
         .catch(error => {
           // This can happen in a variety of normal situations, such as

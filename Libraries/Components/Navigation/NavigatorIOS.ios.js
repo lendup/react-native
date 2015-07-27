@@ -60,7 +60,6 @@ var RCTNavigatorItem = createReactNativeComponentClass({
     tintColor: true,
     translucent: true,
     navigationBarHidden: true,
-    shadowHidden: true,
     titleTextColor: true,
     style: true,
   },
@@ -281,11 +280,6 @@ var NavigatorIOS = React.createClass({
      * A Boolean value that indicates whether the navigation bar is hidden
      */
     navigationBarHidden: PropTypes.bool,
-
-    /**
-     * A Boolean value that indicates whether to hide the 1px hairline shadow
-     */
-    shadowHidden: PropTypes.bool,
 
     /**
      * The default wrapper style for components in the navigator.
@@ -646,7 +640,6 @@ var NavigatorIOS = React.createClass({
           rightButtonTitle={route.rightButtonTitle}
           onNavRightButtonTap={route.onRightButtonPress}
           navigationBarHidden={this.props.navigationBarHidden}
-          shadowHidden={this.props.shadowHidden}
           tintColor={this.props.tintColor}
           barTintColor={this.props.barTintColor}
           translucent={this.props.translucent !== false}

@@ -13,8 +13,6 @@
 
 @implementation AppDelegate
 
-Class RCTPushNotificationManager = nil;
-
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   NSURL *jsCodeLocation;
@@ -51,35 +49,12 @@ Class RCTPushNotificationManager = nil;
                                                       moduleName:@"SampleApp"
                                                    launchOptions:launchOptions];
 
-  RCTPushNotificationManager = NSClassFromString(@"RCTPushNotificationManager");
-  
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
   UIViewController *rootViewController = [[UIViewController alloc] init];
   rootViewController.view = rootView;
   self.window.rootViewController = rootViewController;
   [self.window makeKeyAndVisible];
   return YES;
-}
-
-- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
-{
-  if(RCTPushNotificationManager){
-    [RCTPushNotificationManager application:application didFailToRegisterForRemoteNotificationsWithError:error];
-  }
-}
-
-- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
-{
-  if(RCTPushNotificationManager){
-    [RCTPushNotificationManager application:application didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
-  }
-}
-
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification
-{
-  if(RCTPushNotificationManager){
-    [RCTPushNotificationManager application:application didReceiveRemoteNotification:notification];
-  }
 }
 
 @end
