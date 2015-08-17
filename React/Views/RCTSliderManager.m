@@ -34,7 +34,7 @@ static void RCTSendSliderEvent(RCTSliderManager *self, UISlider *sender, BOOL co
     @"continuous": @(continuous),
   };
 
-  [self.bridge.eventDispatcher sendInputEventWithName:@"topChange" body:event];
+  [self.bridge.eventDispatcher sendInputEventWithName:@"change" body:event];
 }
 
 - (void)sliderValueChanged:(UISlider *)sender

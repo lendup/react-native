@@ -28,6 +28,19 @@ typedef NS_ENUM(NSInteger, RCTScrollEventType) {
   RCTScrollEventTypeEndAnimation,
 };
 
+/**
+ * The threshold at which text inputs will start warning that the JS thread
+ * has fallen behind (resulting in poor input performance, missed keys, etc.)
+ */
+RCT_EXTERN const NSInteger RCTTextUpdateLagWarningThreshold;
+
+/**
+ * Takes an input event name and normalizes it to the form that is required
+ * by the events system (currently that means starting with the "top" prefix,
+ * but that's an implementation detail that may change in future).
+ */
+RCT_EXTERN NSString *RCTNormalizeInputEventName(NSString *eventName);
+
 @protocol RCTEvent <NSObject>
 
 @required
@@ -83,6 +96,9 @@ typedef NS_ENUM(NSInteger, RCTScrollEventType) {
                      reactTag:(NSNumber *)reactTag
                          text:(NSString *)text;
 
+/**
+ * Send a pre-prepared event object.
+ */
 - (void)sendEvent:(id<RCTEvent>)event;
 
 @end

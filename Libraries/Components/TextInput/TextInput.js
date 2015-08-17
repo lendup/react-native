@@ -47,6 +47,7 @@ var AndroidTextInputAttributes = {
   textAlign: true,
   textAlignVertical: true,
   keyboardType: true,
+  mostRecentEventCount: true,
   multiline: true,
   password: true,
   placeholder: true,
@@ -54,6 +55,7 @@ var AndroidTextInputAttributes = {
   text: true,
   testID: true,
   underlineColorAndroid: true,
+  editable : true,
 };
 
 var viewConfigAndroid = {
@@ -77,8 +79,8 @@ type Event = Object;
  * types, such as a numeric keypad.
  *
  * The simplest use case is to plop down a `TextInput` and subscribe to the
- * `onChangeText` events to read the user input.  There are also other events, such
- * as `onSubmitEditing` and `onFocus` that can be subscribed to.  A simple
+ * `onChangeText` events to read the user input. There are also other events,
+ * such as `onSubmitEditing` and `onFocus` that can be subscribed to. A simple
  * example:
  *
  * ```
@@ -102,7 +104,6 @@ type Event = Object;
  * The `multiline` prop is not supported in all releases, and some props are
  * multiline only.
  */
-
 var TextInput = React.createClass({
   propTypes: {
     /**
@@ -120,32 +121,43 @@ var TextInput = React.createClass({
       'characters',
     ]),
     /**
-     * If false, disables auto-correct. Default value is true.
+     * If false, disables auto-correct. The default value is true.
      */
     autoCorrect: PropTypes.bool,
     /**
-     * If true, focuses the input on componentDidMount. Default value is false.
+     * If true, focuses the input on componentDidMount.
+     * The default value is false.
      */
     autoFocus: PropTypes.bool,
     /**
      * Set the position of the cursor from where editing will begin.
+     * @platorm android
      */
     textAlign: PropTypes.oneOf([
       'start',
       'center',
       'end',
     ]),
+    /**
+     * Aligns text vertically within the TextInput.
+     * @platform android
+     */
     textAlignVertical: PropTypes.oneOf([
       'top',
       'center',
       'bottom',
     ]),
     /**
-     * If false, text is not editable. Default value is true.
+     * If false, text is not editable. The default value is true.
      */
     editable: PropTypes.bool,
     /**
      * Determines which keyboard to open, e.g.`numeric`.
+     *
+     * The following values work across platforms:
+     * - default
+     * - numeric
+     * - email-address
      */
     keyboardType: PropTypes.oneOf([
       // Cross-platform
@@ -165,6 +177,7 @@ var TextInput = React.createClass({
     ]),
     /**
      * Determines how the return key should look.
+     * @platform ios
      */
     returnKeyType: PropTypes.oneOf([
       'default',
@@ -180,12 +193,20 @@ var TextInput = React.createClass({
       'emergency-call',
     ]),
     /**
+     * Limits the maximum number of characters that can be entered. Use this
+     * instead of implementing the logic in JS to avoid flicker.
+     * @platform ios
+     */
+    maxLength: PropTypes.number,
+    /**
      * If true, the keyboard disables the return key when there is no text and
-     * automatically enables it when there is text. Default value is false.
+     * automatically enables it when there is text. The default value is false.
+     * @platform ios
      */
     enablesReturnKeyAutomatically: PropTypes.bool,
     /**
-     * If true, the text input can be multiple lines. Default value is false.
+     * If true, the text input can be multiple lines.
+     * The default value is false.
      */
     multiline: PropTypes.bool,
     /**
@@ -214,14 +235,9 @@ var TextInput = React.createClass({
      */
     onSubmitEditing: PropTypes.func,
     /**
-     * Invoked on mount and layout changes with {x, y, width, height}.
+     * Invoked on mount and layout changes with `{x, y, width, height}`.
      */
     onLayout: PropTypes.func,
-    /**
-     * If true, the text input obscures the text entered so that sensitive text
-     * like passwords stay secure. Default value is false.
-     */
-    password: PropTypes.bool,
     /**
      * The string that will be rendered before text input has been entered
      */
@@ -231,12 +247,24 @@ var TextInput = React.createClass({
      */
     placeholderTextColor: PropTypes.string,
     /**
+     * If true, the text input obscures the text entered so that sensitive text
+     * like passwords stay secure. The default value is false.
+     */
+    secureTextEntry: PropTypes.bool,
+    /**
      * See DocumentSelectionState.js, some state that is responsible for
      * maintaining selection information for a document
+     * @platform ios
      */
     selectionState: PropTypes.instanceOf(DocumentSelectionState),
     /**
-     * The default value for the text input
+     * The value to show for the text input. TextInput is a controlled
+     * component, which means the native value will be forced to match this
+     * value prop if provided. For most uses this works great, but in some
+     * cases this may cause flickering - one common cause is preventing edits
+     * by keeping value the same. In addition to simply setting the same value,
+     * either set `editable={false}`, or set/update `maxLength` to prevent
+     * unwanted edits without flicker.
      */
     value: PropTypes.string,
     /**
@@ -254,6 +282,7 @@ var TextInput = React.createClass({
     controlled: PropTypes.bool,
     /**
      * When the clear button should appear on the right side of the text view
+     * @platform ios
      */
     clearButtonMode: PropTypes.oneOf([
       'never',
@@ -263,10 +292,12 @@ var TextInput = React.createClass({
     ]),
     /**
      * If true, clears the text field automatically when editing begins
+     * @platform ios
      */
     clearTextOnFocus: PropTypes.bool,
     /**
-     * If true, selected the text automatically when editing begins
+     * If true, all text will automatically be selected on focus
+     * @platform ios
      */
     selectTextOnFocus: PropTypes.bool,
     /**
@@ -274,11 +305,12 @@ var TextInput = React.createClass({
      */
     style: Text.propTypes.style,
     /**
-     * Used to locate this view in end-to-end tests.
+     * Used to locate this view in end-to-end tests
      */
     testID: PropTypes.string,
     /**
-     * The color of the textInput underline. Is only supported on Android.
+     * The color of the textInput underline.
+     * @platform android
      */
     underlineColorAndroid: PropTypes.string,
   },
@@ -400,6 +432,10 @@ var TextInput = React.createClass({
     isInAParentText: React.PropTypes.bool
   },
 
+  clear: function() {
+    this.setNativeProps({text: ''});
+  },
+
   render: function() {
     if (Platform.OS === 'ios') {
       return this._renderIOS();
@@ -505,6 +541,7 @@ var TextInput = React.createClass({
         textAlign={textAlign}
         textAlignVertical={textAlignVertical}
         keyboardType={this.props.keyboardType}
+        mostRecentEventCount={this.state.mostRecentEventCount}
         multiline={this.props.multiline}
         onFocus={this._onFocus}
         onBlur={this._onBlur}
@@ -519,6 +556,7 @@ var TextInput = React.createClass({
         text={this.state.bufferedValue}
         underlineColorAndroid={this.props.underlineColorAndroid}
         children={children}
+        editable={this.props.editable}
       />;
 
     return (
@@ -541,9 +579,14 @@ var TextInput = React.createClass({
   },
 
   _onChange: function(event: Event) {
-    if (this.props.controlled && event.nativeEvent.text !== this.props.value) {
-      this.refs.input.setNativeProps({text: this.props.value});
+    if (Platform.OS === 'android') {
+      // Android expects the event count to be updated as soon as possible.
+      this.refs.input.setNativeProps({
+        mostRecentEventCount: event.nativeEvent.eventCount,
+      });
     }
+    var text = event.nativeEvent.text;
+    var eventCount = event.nativeEvent.eventCount;
     this.props.onChange && this.props.onChange(event);
     this.props.onChangeText && this.props.onChangeText(event.nativeEvent.text);
   },

@@ -129,6 +129,9 @@ RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
   if (![text isEqualToString:_textView.text]) {
     [_textView setText:text];
     [self _setPlaceholderVisibility];
+    _textView.selectedTextRange = selection; // maintain cursor position/selection - this is robust to out of bounds
+  } else if (eventLag > RCTTextUpdateLagWarningThreshold) {
+    RCTLogWarn(@"Native TextInput(%@) is %zd events ahead of JS - try to make your JS faster.", self.text, eventLag);
   }
 }
 

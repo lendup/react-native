@@ -20,6 +20,22 @@
 #import "RCTPerformanceLogger.h"
 #import "RCTUtils.h"
 
+#ifndef RCT_JSC_PROFILER
+#if RCT_DEV && RCT_DEBUG
+#define RCT_JSC_PROFILER 1
+#else
+#define RCT_JSC_PROFILER 0
+#endif
+#endif
+
+#if RCT_JSC_PROFILER
+#include <dlfcn.h>
+
+#ifndef RCT_JSC_PROFILER_DYLIB
+#define RCT_JSC_PROFILER_DYLIB [[[NSBundle mainBundle] pathForResource:[NSString stringWithFormat:@"RCTJSCProfiler.ios%zd", [[[UIDevice currentDevice] systemVersion] integerValue]] ofType:@"dylib" inDirectory:@"Frameworks"] UTF8String]
+#endif
+#endif
+
 @interface RCTJavaScriptContext : NSObject <RCTInvalidating>
 
 @property (nonatomic, assign, readonly) JSGlobalContextRef ctx;
@@ -439,7 +455,8 @@ static NSError *RCTNSErrorFromJSError(JSContextRef context, JSValueRef jsError)
                        sourceURL:(NSURL *)sourceURL
                       onComplete:(RCTJavaScriptCompleteBlock)onComplete
 {
-  RCTAssert(sourceURL != nil, @"url should not be nil");
+  RCTAssertParam(script);
+  RCTAssertParam(sourceURL);
 
   __weak RCTContextExecutor *weakSelf = self;
   [self executeBlockOnJavaScriptQueue:RCTProfileBlock((^{
@@ -526,6 +543,15 @@ static NSError *RCTNSErrorFromJSError(JSContextRef context, JSValueRef jsError)
       onComplete(nil);
     }
   }), @"js_call,json_call", (@{@"objectName": objectName}))];
+}
+
+RCT_EXPORT_METHOD(setContextName:(NSString *)name)
+{
+  if (JSGlobalContextSetName != NULL) {
+    JSStringRef JSName = JSStringCreateWithCFString((__bridge CFStringRef)name);
+    JSGlobalContextSetName(_context.ctx, JSName);
+    JSStringRelease(JSName);
+  }
 }
 
 @end

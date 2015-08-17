@@ -321,15 +321,17 @@ RCT_EXPORT_MODULE()
   }
   NSURLRequest *request = [RCTConvert NSURLRequest:query[@"uri"]];
   if (request) {
-    id<RCTURLRequestHandler> handler = [self handlerForRequest:request];
-    if (!handler) {
-      return;
-    }
-    (void)[[RCTDataLoader alloc] initWithRequest:request handler:handler callback:^(NSData *data, NSString *MIMEType, NSError *error) {
-      if (data) {
-        callback(nil, @{@"body": data, @"contentType": MIMEType});
-      } else {
-        callback(error, nil);
+
+    __block RCTURLRequestCancellationBlock cancellationBlock = nil;
+    RCTDownloadTask *task = [self downloadTaskWithRequest:request completionBlock:^(NSURLResponse *response, NSData *data, NSError *error) {
+      cancellationBlock = callback(error, data ? @{@"body": data, @"contentType": RCTNullIfNil(response.MIMEType)} : nil);
+    }];
+
+    __weak RCTDownloadTask *weakTask = task;
+    return ^{
+      [weakTask cancel];
+      if (cancellationBlock) {
+        cancellationBlock();
       }
     }];
     return;
@@ -394,11 +396,47 @@ RCT_EXPORT_MODULE()
 
 - (void)URLRequest:(id)requestToken didReceiveResponse:(NSURLResponse *)response
 {
-  dispatch_async(_methodQueue, ^{
-    RCTActiveURLRequest *request = [_activeRequests objectForKey:requestToken];
-    RCTAssert(request != nil, @"Unrecognized request token: %@", requestToken);
+  __block RCTDownloadTask *task;
 
-    request.response = response;
+  RCTURLRequestProgressBlock uploadProgressBlock = ^(int64_t progress, int64_t total) {
+    dispatch_async(_methodQueue, ^{
+      NSArray *responseJSON = @[task.requestID, @((double)progress), @((double)total)];
+      [_bridge.eventDispatcher sendDeviceEventWithName:@"didSendNetworkData" body:responseJSON];
+    });
+  };
+
+  void (^responseBlock)(NSURLResponse *) = ^(NSURLResponse *response) {
+    dispatch_async(_methodQueue, ^{
+      NSHTTPURLResponse *httpResponse = nil;
+      if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+        // Might be a local file request
+        httpResponse = (NSHTTPURLResponse *)response;
+      }
+      NSArray *responseJSON = @[task.requestID,
+                                @(httpResponse.statusCode ?: 200),
+                                httpResponse.allHeaderFields ?: @{},
+                                ];
+
+      [_bridge.eventDispatcher sendDeviceEventWithName:@"didReceiveNetworkResponse"
+                                                  body:responseJSON];
+    });
+  };
+
+  void (^incrementalDataBlock)(NSData *) = incrementalUpdates ? ^(NSData *data) {
+    dispatch_async(_methodQueue, ^{
+      [self sendData:data forTask:task];
+    });
+  } : nil;
+
+  RCTURLRequestCompletionBlock completionBlock =
+  ^(NSURLResponse *response, NSData *data, NSError *error) {
+    dispatch_async(_methodQueue, ^{
+      if (!incrementalUpdates) {
+        [self sendData:data forTask:task];
+      }
+      NSArray *responseJSON = @[task.requestID,
+                                RCTNullIfNil(error.localizedDescription),
+                                ];
 
     NSHTTPURLResponse *httpResponse = nil;
     if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
@@ -411,16 +449,10 @@ RCT_EXPORT_MODULE()
                               httpResponse.allHeaderFields ?: @{},
                               ];
 
-    [_bridge.eventDispatcher sendDeviceEventWithName:@"didReceiveNetworkResponse"
-                                                body:responseJSON];
-  });
-}
-
-- (void)URLRequest:(id)requestToken didReceiveData:(NSData *)data
-{
-  dispatch_async(_methodQueue, ^{
-    RCTActiveURLRequest *request = [_activeRequests objectForKey:requestToken];
-    RCTAssert(request != nil, @"Unrecognized request token: %@", requestToken);
+  task = [self downloadTaskWithRequest:request completionBlock:completionBlock];
+  task.incrementalDataBlock = incrementalDataBlock;
+  task.responseBlock = responseBlock;
+  task.uploadProgressBlock = uploadProgressBlock;
 
     if (request.incrementalUpdates) {
       [self sendData:data forRequestToken:requestToken];
@@ -452,6 +484,21 @@ RCT_EXPORT_MODULE()
   });
 }
 
+#pragma mark - Public API
+
+- (RCTDownloadTask *)downloadTaskWithRequest:(NSURLRequest *)request
+                             completionBlock:(RCTURLRequestCompletionBlock)completionBlock
+{
+  id<RCTURLRequestHandler> handler = [self handlerForRequest:request];
+  if (!handler) {
+    return nil;
+  }
+
+  return [[RCTDownloadTask alloc] initWithRequest:request
+                                          handler:handler
+                                  completionBlock:completionBlock];
+}
+
 #pragma mark - JS API
 
 RCT_EXPORT_METHOD(sendRequest:(NSDictionary *)query
@@ -460,7 +507,7 @@ RCT_EXPORT_METHOD(sendRequest:(NSDictionary *)query
   [self buildRequest:query responseSender:responseSender];
 }
 
-RCT_EXPORT_METHOD(cancelRequest:(NSNumber *)requestID)
+RCT_EXPORT_METHOD(cancelRequest:(nonnull NSNumber *)requestID)
 {
   id requestToken = nil;
   RCTActiveURLRequest *activeRequest = nil;
@@ -477,6 +524,15 @@ RCT_EXPORT_METHOD(cancelRequest:(NSNumber *)requestID)
   if ([handler respondsToSelector:@selector(cancelRequest:)]) {
     [activeRequest.handler cancelRequest:requestToken];
   }
+}
+
+@end
+
+@implementation RCTBridge (RCTNetworking)
+
+- (RCTNetworking *)networking
+{
+  return self.modules[RCTBridgeModuleNameForClass([RCTNetworking class])];
 }
 
 @end

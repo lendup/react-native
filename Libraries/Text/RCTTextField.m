@@ -26,10 +26,10 @@
   if ((self = [super initWithFrame:CGRectZero])) {
     RCTAssert(eventDispatcher, @"eventDispatcher is a required parameter");
     _eventDispatcher = eventDispatcher;
-    [self addTarget:self action:@selector(_textFieldDidChange) forControlEvents:UIControlEventEditingChanged];
-    [self addTarget:self action:@selector(_textFieldBeginEditing) forControlEvents:UIControlEventEditingDidBegin];
-    [self addTarget:self action:@selector(_textFieldEndEditing) forControlEvents:UIControlEventEditingDidEnd];
-    [self addTarget:self action:@selector(_textFieldSubmitEditing) forControlEvents:UIControlEventEditingDidEndOnExit];
+    [self addTarget:self action:@selector(textFieldDidChange) forControlEvents:UIControlEventEditingChanged];
+    [self addTarget:self action:@selector(textFieldBeginEditing) forControlEvents:UIControlEventEditingDidBegin];
+    [self addTarget:self action:@selector(textFieldEndEditing) forControlEvents:UIControlEventEditingDidEnd];
+    [self addTarget:self action:@selector(textFieldSubmitEditing) forControlEvents:UIControlEventEditingDidEndOnExit];
     _reactSubviews = [[NSMutableArray alloc] init];
   }
   return self;
@@ -42,6 +42,9 @@ RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
 {
   if (![text isEqualToString:self.text]) {
     [super setText:text];
+    self.selectedTextRange = selection; // maintain cursor position/selection - this is robust to out of bounds
+  } else if (eventLag > RCTTextUpdateLagWarningThreshold) {
+    RCTLogWarn(@"Native TextInput(%@) is %zd events ahead of JS - try to make your JS faster.", self.text, eventLag);
   }
 }
 
@@ -122,19 +125,31 @@ static void RCTUpdatePlaceholder(RCTTextField *self)
   return self.autocorrectionType == UITextAutocorrectionTypeYes;
 }
 
-#define RCT_TEXT_EVENT_HANDLER(delegateMethod, eventName) \
-- (void)delegateMethod                                    \
-{                                                         \
-  [_eventDispatcher sendTextEventWithType:eventName       \
-                                 reactTag:self.reactTag   \
-                                     text:self.text];     \
+- (void)textFieldDidChange
+{
+  _nativeEventCount++;
+  [_eventDispatcher sendTextEventWithType:RCTTextEventTypeChange
+                                 reactTag:self.reactTag
+                                     text:self.text
+                               eventCount:_nativeEventCount];
 }
 
-RCT_TEXT_EVENT_HANDLER(_textFieldDidChange, RCTTextEventTypeChange)
-RCT_TEXT_EVENT_HANDLER(_textFieldEndEditing, RCTTextEventTypeEnd)
-RCT_TEXT_EVENT_HANDLER(_textFieldSubmitEditing, RCTTextEventTypeSubmit)
+- (void)textFieldEndEditing
+{
+  [_eventDispatcher sendTextEventWithType:RCTTextEventTypeEnd
+                                 reactTag:self.reactTag
+                                     text:self.text
+                               eventCount:_nativeEventCount];
+}
+- (void)textFieldSubmitEditing
+{
+  [_eventDispatcher sendTextEventWithType:RCTTextEventTypeSubmit
+                                 reactTag:self.reactTag
+                                     text:self.text
+                               eventCount:_nativeEventCount];
+}
 
-- (void)_textFieldBeginEditing
+- (void)textFieldBeginEditing
 {
   if (_selectTextOnFocus) {
     dispatch_async(dispatch_get_main_queue(), ^{

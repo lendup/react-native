@@ -27,7 +27,6 @@ var invariant = require('invariant');
 var merge = require('merge');
 var requireNativeComponent = require('requireNativeComponent');
 var resolveAssetSource = require('resolveAssetSource');
-var verifyPropTypes = require('verifyPropTypes');
 var warning = require('warning');
 
 /**
@@ -54,7 +53,6 @@ var warning = require('warning');
  * },
  * ```
  */
-
 var Image = React.createClass({
   propTypes: {
     /**
@@ -68,16 +66,20 @@ var Image = React.createClass({
     /**
      * A static image to display while downloading the final image off the
      * network.
+     * @platform ios
      */
     defaultSource: PropTypes.shape({
       uri: PropTypes.string,
     }),
     /**
-     * Whether this element should be revealed as an accessible element.
+     * When true, indicates the image is an accessibility element.
+     * @platform ios
      */
     accessible: PropTypes.bool,
     /**
-     * Custom string to display for accessibility.
+     * The text that's read by the screen reader when the user interacts with
+     * the image.
+     * @platform ios
      */
     accessibilityLabel: PropTypes.string,
     /**
@@ -86,6 +88,7 @@ var Image = React.createClass({
      * of the image will be stretched.  This is useful for creating resizable
      * rounded buttons, shadows, and other resizable assets.  More info on
      * [Apple documentation](https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIImage_Class/index.html#//apple_ref/occ/instm/UIImage/resizableImageWithCapInsets)
+     * @platform ios
      */
     capInsets: EdgeInsetsPropType,
     /**
@@ -101,33 +104,32 @@ var Image = React.createClass({
     testID: PropTypes.string,
     /**
      * Invoked on mount and layout changes with
-     *
-     *   {nativeEvent: { layout: {x, y, width, height}}}.
+     * `{nativeEvent: {layout: {x, y, width, height}}}`.
      */
     onLayout: PropTypes.func,
     /**
      * Invoked on load start
+     * @platform ios
      */
     onLoadStart: PropTypes.func,
     /**
-     * Invoked on download progress with
-     *
-     *   {nativeEvent: { written, total}}.
+     * Invoked on download progress with `{nativeEvent: {loaded, total}}`
+     * @platform ios
      */
     onLoadProgress: PropTypes.func,
     /**
-     * Invoked on load abort
+     * Invoked on load error with `{nativeEvent: {error}}`
+     * @platform ios
      */
     onLoadAbort: PropTypes.func,
     /**
-     * Invoked on load error
-     *
-     *   {nativeEvent: { error}}.
+     * Invoked when load completes successfully
+     * @platform ios
      */
     onLoadError: PropTypes.func,
     /**
-     * Invoked on load end
-     *
+     * Invoked when load either succeeds or fails
+     * @platform ios
      */
     onLoaded: PropTypes.func
 
@@ -149,7 +151,7 @@ var Image = React.createClass({
   },
 
   render: function() {
-    for (var prop in nativeOnlyProps) {
+    for (var prop in cfg.nativeOnly) {
       if (this.props[prop] !== undefined) {
         console.warn('Prop `' + prop + ' = ' + this.props[prop] + '` should ' +
           'not be set directly on Image.');
@@ -162,9 +164,19 @@ var Image = React.createClass({
     invariant(style, 'style must be initialized');
 
     var isNetwork = source.uri && source.uri.match(/^https?:/);
-    invariant(
-      !(isNetwork && source.isStatic),
-      'static image uris cannot start with "http": "' + source.uri + '"'
+    var RawImage = isNetwork ? RCTNetworkImageView : RCTImageView;
+    var resizeMode = this.props.resizeMode || (style || {}).resizeMode || 'cover'; // Workaround for flow bug t7737108
+    var tintColor = (style || {}).tintColor; // Workaround for flow bug t7737108
+
+    return (
+      <RawImage
+        {...this.props}
+        style={style}
+        resizeMode={resizeMode}
+        tintColor={tintColor}
+        src={source.uri}
+        defaultImageSrc={defaultSource.uri}
+      />
     );
     var isStored = !source.isStatic && !isNetwork;
     var RawImage = isNetwork ? RCTNetworkImage : RCTStaticImage;
@@ -198,18 +210,15 @@ var styles = StyleSheet.create({
   },
 });
 
-var RCTNetworkImage = requireNativeComponent('RCTNetworkImageView', null);
-var RCTStaticImage = requireNativeComponent('RCTStaticImage', null);
-
-var nativeOnlyProps = {
-  src: true,
-  defaultImageSrc: true,
-  imageTag: true,
-  progressHandlerRegistered: true
+var cfg = {
+  nativeOnly: {
+    src: true,
+    defaultImageSrc: true,
+    imageTag: true,
+    progressHandlerRegistered: true,
+  },
 };
-if (__DEV__) {
-  verifyPropTypes(Image, RCTStaticImage.viewConfig, nativeOnlyProps);
-  verifyPropTypes(Image, RCTNetworkImage.viewConfig, nativeOnlyProps);
-}
+var RCTImageView = requireNativeComponent('RCTImageView', Image, cfg);
+var RCTNetworkImageView = (NativeModules.NetworkImageViewManager) ? requireNativeComponent('RCTNetworkImageView', Image, cfg) : RCTImageView;
 
 module.exports = Image;

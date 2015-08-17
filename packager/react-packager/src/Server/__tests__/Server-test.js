@@ -18,7 +18,8 @@ jest.setMock('worker-farm', function() { return function() {}; })
       }
     })
     .setMock('uglify-js')
-    .dontMock('../');
+    .dontMock('../')
+    .setMock('chalk', { dim: function(s) { return s; } });
 
 var Promise = require('promise');
 
@@ -39,6 +40,7 @@ describe('processRequest', function() {
       requestHandler(
         { url: requrl },
         {
+          setHeader: jest.genMockFunction(),
           end: function(res) {
             resolve(res);
           }

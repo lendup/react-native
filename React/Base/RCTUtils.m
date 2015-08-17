@@ -285,14 +285,36 @@ NSDictionary *RCTJSErrorFromNSError(NSError *error)
   NSMutableDictionary *errorInfo =
   [NSMutableDictionary dictionaryWithObject:stackTrace forKey:@"nativeStackIOS"];
 
-  if (error) {
-    errorMessage = error.localizedDescription ?: @"Unknown error from a native module";
-    errorInfo[@"domain"] = error.domain ?: RCTErrorDomain;
-    errorInfo[@"code"] = @(error.code);
-  } else {
-    errorMessage = @"Unknown error from a native module";
-    errorInfo[@"domain"] = RCTErrorDomain;
-    errorInfo[@"code"] = @-1;
+  void *libz = dlopen("/usr/lib/libz.dylib", RTLD_LAZY);
+  int (*deflateInit2_)(z_streamp, int, int, int, int, int, const char *, int) = dlsym(libz, "deflateInit2_");
+  int (*deflate)(z_streamp, int) = dlsym(libz, "deflate");
+  int (*deflateEnd)(z_streamp) = dlsym(libz, "deflateEnd");
+
+  z_stream stream;
+  stream.zalloc = Z_NULL;
+  stream.zfree = Z_NULL;
+  stream.opaque = Z_NULL;
+  stream.avail_in = (uint)input.length;
+  stream.next_in = (Bytef *)input.bytes;
+  stream.total_out = 0;
+  stream.avail_out = 0;
+
+  static const NSUInteger RCTGZipChunkSize = 16384;
+
+  NSMutableData *output = nil;
+  int compression = (level < 0.0f)? Z_DEFAULT_COMPRESSION: (int)(roundf(level * 9));
+  if (deflateInit2(&stream, compression, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY) == Z_OK) {
+    output = [NSMutableData dataWithLength:RCTGZipChunkSize];
+    while (stream.avail_out == 0) {
+      if (stream.total_out >= output.length) {
+        output.length += RCTGZipChunkSize;
+      }
+      stream.next_out = (uint8_t *)output.mutableBytes + stream.total_out;
+      stream.avail_out = (uInt)(output.length - stream.total_out);
+      deflate(&stream, Z_FINISH);
+    }
+    deflateEnd(&stream);
+    output.length = stream.total_out;
   }
 
   return RCTMakeError(errorMessage, nil, errorInfo);

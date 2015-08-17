@@ -22,19 +22,23 @@ jest
   .dontMock('../../AssetModule')
   .dontMock('../../Module')
   .dontMock('../../Package')
-  .dontMock('../../ModuleCache');
+  .dontMock('../../ModuleCache')
+  .setMock('chalk', { dim: function(s) { return s; } });
 
 const Promise = require('promise');
 
 jest.mock('fs');
 
 describe('DependencyGraph', function() {
+  var cache;
+  var Cache;
   var DependencyGraph;
   var fileWatcher;
   var fs;
 
   beforeEach(function() {
     fs = require('fs');
+    Cache = require('../../../Cache');
     DependencyGraph = require('../index');
 
     fileWatcher = {
@@ -43,6 +47,8 @@ describe('DependencyGraph', function() {
       },
       isWatchman: () => Promise.resolve(false)
     };
+
+    cache = new Cache({});
   });
 
   describe('getOrderedDependencies', function() {
@@ -68,6 +74,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -125,6 +132,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -176,6 +184,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -235,6 +244,7 @@ describe('DependencyGraph', function() {
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
         assetRoots_DEPRECATED: ['/root/imgs'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -286,6 +296,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -342,6 +353,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -419,6 +431,7 @@ describe('DependencyGraph', function() {
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
         assetRoots_DEPRECATED: ['/root/imgs'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -480,6 +493,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -532,6 +546,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -584,6 +599,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -644,6 +660,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -700,6 +717,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -750,6 +768,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -799,6 +818,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -845,6 +865,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -895,6 +916,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -943,6 +965,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -996,6 +1019,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/somedir/somefile.js').then(function(deps) {
         expect(deps)
@@ -1053,6 +1077,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1100,6 +1125,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1146,6 +1172,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1204,6 +1231,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1262,6 +1290,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1340,6 +1369,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1396,6 +1426,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1452,6 +1483,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1508,6 +1540,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1579,6 +1612,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1681,6 +1715,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1761,6 +1796,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1809,6 +1845,78 @@ describe('DependencyGraph', function() {
       });
     });
 
+    pit('platform should work with node_modules', function() {
+      var root = '/root';
+      fs.__setMockFilesystem({
+        'root': {
+          'index.ios.js': [
+            '/**',
+            ' * @providesModule index',
+            ' */',
+            'require("foo");',
+            'require("bar");',
+          ].join('\n'),
+          'node_modules': {
+            'foo': {
+              'package.json': JSON.stringify({
+                name: 'foo',
+              }),
+              'index.ios.js': '',
+            },
+            'bar': {
+              'package.json': JSON.stringify({
+                name: 'bar',
+                main: 'main'
+              }),
+              'main.ios.js': '',
+            },
+          },
+        }
+      });
+
+      var dgraph = new DependencyGraph({
+        roots: [root],
+        fileWatcher: fileWatcher,
+        assetExts: ['png', 'jpg'],
+        cache: cache,
+      });
+      return dgraph.getOrderedDependencies('/root/index.ios.js').then(function(deps) {
+        expect(deps)
+          .toEqual([
+            {
+              id: 'index',
+              path: '/root/index.ios.js',
+              dependencies: ['foo', 'bar'],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+            {
+              id: 'foo/index.ios.js',
+              path: '/root/node_modules/foo/index.ios.js',
+              dependencies: [],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+            {
+              id: 'bar/main.ios.js',
+              path: '/root/node_modules/bar/main.ios.js',
+              dependencies: [],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+         ]);
+      });
+    });
+
     pit('nested node_modules with specific paths', function() {
       var root = '/root';
       fs.__setMockFilesystem({
@@ -1853,6 +1961,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -1949,6 +2058,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -2034,6 +2144,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -2138,6 +2249,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -2206,6 +2318,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/react-tools/index.js').then(function(deps) {
         expect(deps)
@@ -2262,6 +2375,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -2306,6 +2420,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -2323,6 +2438,172 @@ describe('DependencyGraph', function() {
             {
               id: 'sha.js/main.js',
               path: '/root/node_modules/sha.js/main.js',
+              dependencies: [],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+          ]);
+      });
+    });
+
+    pit('should work with multiple platforms (haste)', function() {
+      var root = '/root';
+      fs.__setMockFilesystem({
+        'root': {
+          'index.ios.js': `
+            /**
+             * @providesModule index
+             */
+             require('a');
+          `,
+          'a.ios.js': `
+            /**
+             * @providesModule a
+             */
+          `,
+          'a.android.js': `
+            /**
+             * @providesModule a
+             */
+          `,
+          'a.js': `
+            /**
+             * @providesModule a
+             */
+          `,
+        }
+      });
+
+      var dgraph = new DependencyGraph({
+        roots: [root],
+        fileWatcher: fileWatcher,
+        assetExts: ['png', 'jpg'],
+        cache: cache,
+      });
+      return dgraph.getOrderedDependencies('/root/index.ios.js').then(function(deps) {
+        expect(deps)
+          .toEqual([
+            {
+              id: 'index',
+              path: '/root/index.ios.js',
+              dependencies: ['a'],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+            {
+              id: 'a',
+              path: '/root/a.ios.js',
+              dependencies: [],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+          ]);
+      });
+    });
+
+    pit('should pick the generic file', function() {
+      var root = '/root';
+      fs.__setMockFilesystem({
+        'root': {
+          'index.ios.js': `
+            /**
+             * @providesModule index
+             */
+             require('a');
+          `,
+          'a.android.js': `
+            /**
+             * @providesModule a
+             */
+          `,
+          'a.js': `
+            /**
+             * @providesModule a
+             */
+          `,
+        }
+      });
+
+      var dgraph = new DependencyGraph({
+        roots: [root],
+        fileWatcher: fileWatcher,
+        assetExts: ['png', 'jpg'],
+        cache: cache,
+      });
+      return dgraph.getOrderedDependencies('/root/index.ios.js').then(function(deps) {
+        expect(deps)
+          .toEqual([
+            {
+              id: 'index',
+              path: '/root/index.ios.js',
+              dependencies: ['a'],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+            {
+              id: 'a',
+              path: '/root/a.js',
+              dependencies: [],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+          ]);
+      });
+    });
+
+    pit('should work with multiple platforms (node)', function() {
+      var root = '/root';
+      fs.__setMockFilesystem({
+        'root': {
+          'index.ios.js': `
+            /**
+             * @providesModule index
+             */
+             require('./a');
+          `,
+          'a.ios.js': '',
+          'a.android.js': '',
+          'a.js': '',
+        }
+      });
+
+      var dgraph = new DependencyGraph({
+        roots: [root],
+        fileWatcher: fileWatcher,
+        assetExts: ['png', 'jpg'],
+        cache: cache,
+      });
+      return dgraph.getOrderedDependencies('/root/index.ios.js').then(function(deps) {
+        expect(deps)
+          .toEqual([
+            {
+              id: 'index',
+              path: '/root/index.ios.js',
+              dependencies: ['./a'],
+              isAsset: false,
+              isAsset_DEPRECATED: false,
+              isJSON: false,
+              isPolyfill: false,
+              resolution: undefined,
+            },
+            {
+              id: '/root/a.ios.js',
+              path: '/root/a.ios.js',
               dependencies: [],
               isAsset: false,
               isAsset_DEPRECATED: false,
@@ -2389,6 +2670,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root['index.js'] =
@@ -2453,6 +2735,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root['index.js'] =
@@ -2517,6 +2800,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         delete filesystem.root.foo;
@@ -2580,6 +2864,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root['bar.js'] = [
@@ -2661,6 +2946,7 @@ describe('DependencyGraph', function() {
         assetRoots_DEPRECATED: [root],
         assetExts: ['png'],
         fileWatcher: fileWatcher,
+        cache: cache,
       });
 
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
@@ -2732,6 +3018,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         assetExts: ['png'],
         fileWatcher: fileWatcher,
+        cache: cache,
       });
 
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
@@ -2818,7 +3105,8 @@ describe('DependencyGraph', function() {
             return true;
           }
           return false;
-        }
+        },
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root['bar.js'] = [
@@ -2903,6 +3191,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         triggerFileChange('change', 'aPackage', '/root', {
@@ -2973,6 +3262,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root['index.js'] = filesystem.root['index.js'].replace(/aPackage/, 'bPackage');
@@ -3039,6 +3329,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root.aPackage['package.json'] = JSON.stringify({
@@ -3103,6 +3394,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function() {
         filesystem.root.aPackage['package.json'] = JSON.stringify({
@@ -3165,6 +3457,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         expect(deps)
@@ -3264,6 +3557,7 @@ describe('DependencyGraph', function() {
         roots: [root],
         fileWatcher: fileWatcher,
         assetExts: ['png', 'jpg'],
+        cache: cache,
       });
       return dgraph.getOrderedDependencies('/root/index.js').then(function(deps) {
         filesystem.root.node_modules.foo['package.json'] = JSON.stringify({

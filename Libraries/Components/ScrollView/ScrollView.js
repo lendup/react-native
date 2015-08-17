@@ -223,19 +223,8 @@ var ScrollView = React.createClass({
   },
 
   scrollTo: function(destY?: number, destX?: number) {
-    if (Platform.OS === 'android') {
-      RCTUIManager.dispatchViewManagerCommand(
-        React.findNodeHandle(this),
-        RCTUIManager.RCTScrollView.Commands.scrollTo,
-        [destX || 0, destY || 0]
-      );
-    } else {
-      RCTUIManager.scrollTo(
-        React.findNodeHandle(this),
-        destX || 0,
-        destY || 0
-      );
-    }
+    // $FlowFixMe - Don't know how to pass Mixin correctly. Postpone for now
+    this.getScrollResponder().scrollResponderScrollTo(destX || 0, destY || 0);
   },
 
   scrollWithoutAnimationTo: function(destY?: number, destX?: number) {
@@ -244,6 +233,21 @@ var ScrollView = React.createClass({
       destX || 0,
       destY || 0
     );
+  },
+
+  handleScroll: function(e: Event) {
+    if (__DEV__) {
+      if (this.props.onScroll && !this.props.scrollEventThrottle) {
+        console.log(
+          'You specified `onScroll` on a <ScrollView> but not ' +
+          '`scrollEventThrottle`. You will only receive one event. ' +
+          'Using `16` you get all the events but be aware that it may ' +
+          'cause frame drops, use a bigger number if you don\'t need as ' +
+          'much precision.'
+        );
+      }
+    }
+    this.scrollResponderHandleScroll(e);
   },
 
   render: function() {
@@ -261,27 +265,13 @@ var ScrollView = React.createClass({
           ') must by applied through the contentContainerStyle prop.'
       );
     }
-    if (__DEV__) {
-      if (this.props.onScroll && !this.props.scrollEventThrottle) {
-        var onScroll = this.props.onScroll;
-        this.props.onScroll = function() {
-          console.log(
-            'You specified `onScroll` on a <ScrollView> but not ' +
-            '`scrollEventThrottle`. You will only receive one event. ' +
-            'Using `16` you get all the events but be aware that it may ' +
-            'cause frame drops, use a bigger number if you don\'t need as ' +
-            'much precision.'
-          );
-          onScroll.apply(this, arguments);
-        };
-      }
-    }
 
     var contentContainer =
       <View
         ref={INNERVIEW}
         style={contentContainerStyle}
-        removeClippedSubviews={this.props.removeClippedSubviews}>
+        removeClippedSubviews={this.props.removeClippedSubviews}
+        collapsable={false}>
         {this.props.children}
       </View>;
 
@@ -310,7 +300,7 @@ var ScrollView = React.createClass({
       onStartShouldSetResponder: this.scrollResponderHandleStartShouldSetResponder,
       onStartShouldSetResponderCapture: this.scrollResponderHandleStartShouldSetResponderCapture,
       onScrollShouldSetResponder: this.scrollResponderHandleScrollShouldSetResponder,
-      onScroll: this.scrollResponderHandleScroll,
+      onScroll: this.handleScroll,
       onResponderGrant: this.scrollResponderHandleResponderGrant,
       onResponderTerminationRequest: this.scrollResponderHandleTerminationRequest,
       onResponderTerminate: this.scrollResponderHandleTerminate,

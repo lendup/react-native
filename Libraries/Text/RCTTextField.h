@@ -20,5 +20,6 @@
 @property (nonatomic, strong) UIColor *placeholderTextColor;
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher NS_DESIGNATED_INITIALIZER;
+- (void)textFieldDidChange;
 
 @end
