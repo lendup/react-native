@@ -249,6 +249,11 @@ var NavigatorIOS = React.createClass({
     navigationBarHidden: PropTypes.bool,
 
     /**
+     * A Boolean value that indicates whether to hide the 1px hairline shadow
+     */
+    shadowHidden: PropTypes.bool,
+
+    /**
      * The default wrapper style for components in the navigator.
      * A common use case is to set the backgroundColor for every page
      */
@@ -607,6 +612,7 @@ var NavigatorIOS = React.createClass({
           rightButtonTitle={route.rightButtonTitle}
           onNavRightButtonTap={route.onRightButtonPress}
           navigationBarHidden={this.props.navigationBarHidden}
+          shadowHidden={this.props.shadowHidden}
           tintColor={this.props.tintColor}
           barTintColor={this.props.barTintColor}
           translucent={this.props.translucent !== false}

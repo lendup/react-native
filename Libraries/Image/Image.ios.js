@@ -24,7 +24,6 @@ var StyleSheetPropType = require('StyleSheetPropType');
 
 var flattenStyle = require('flattenStyle');
 var invariant = require('invariant');
-var merge = require('merge');
 var requireNativeComponent = require('requireNativeComponent');
 var resolveAssetSource = require('resolveAssetSource');
 var warning = require('warning');
@@ -55,6 +54,7 @@ var warning = require('warning');
  */
 var Image = React.createClass({
   propTypes: {
+    style: StyleSheetPropType(ImageStylePropTypes),
     /**
      * `uri` is a string representing the resource identifier for the image, which
      * could be an http address, a local file path, or the name of a static image
@@ -96,7 +96,6 @@ var Image = React.createClass({
      * image dimensions.
      */
     resizeMode: PropTypes.oneOf(['cover', 'contain', 'stretch']),
-    style: StyleSheetPropType(ImageStylePropTypes),
     /**
      * A unique identifier for this element to be used in UI Automation
      * testing scripts.
@@ -116,23 +115,22 @@ var Image = React.createClass({
      * Invoked on download progress with `{nativeEvent: {loaded, total}}`
      * @platform ios
      */
-    onLoadProgress: PropTypes.func,
+    onProgress: PropTypes.func,
     /**
      * Invoked on load error with `{nativeEvent: {error}}`
      * @platform ios
      */
-    onLoadAbort: PropTypes.func,
+    onError: PropTypes.func,
     /**
      * Invoked when load completes successfully
      * @platform ios
      */
-    onLoadError: PropTypes.func,
+    onLoad: PropTypes.func,
     /**
      * Invoked when load either succeeds or fails
      * @platform ios
      */
-    onLoaded: PropTypes.func
-
+    onLoadEnd: PropTypes.func,
   },
 
   statics: {
@@ -158,10 +156,10 @@ var Image = React.createClass({
       }
     }
     var source = resolveAssetSource(this.props.source) || {};
+    var defaultSource = (this.props.defaultSource && resolveAssetSource(this.props.defaultSource)) || {};
 
     var {width, height} = source;
-    var style = flattenStyle([{width, height}, styles.base, this.props.style]);
-    invariant(style, 'style must be initialized');
+    var style = flattenStyle([{width, height}, styles.base, this.props.style]) || {};
 
     var isNetwork = source.uri && source.uri.match(/^https?:/);
     var RawImage = isNetwork ? RCTNetworkImageView : RCTImageView;
@@ -178,29 +176,6 @@ var Image = React.createClass({
         defaultImageSrc={defaultSource.uri}
       />
     );
-    var isStored = !source.isStatic && !isNetwork;
-    var RawImage = isNetwork ? RCTNetworkImage : RCTStaticImage;
-
-    if (this.props.style && this.props.style.tintColor) {
-      warning(RawImage === RCTStaticImage, 'tintColor style only supported on static images.');
-    }
-    var resizeMode = this.props.resizeMode || style.resizeMode || 'cover';
-
-    var nativeProps = merge(this.props, {
-      style,
-      resizeMode,
-      tintColor: style.tintColor,
-    });
-    if (isStored) {
-      nativeProps.imageTag = source.uri;
-    } else {
-      nativeProps.src = source.uri;
-    }
-    if (this.props.defaultSource) {
-      nativeProps.defaultImageSrc = this.props.defaultSource.uri;
-    }
-    nativeProps.progressHandlerRegistered = isNetwork && this.props.onLoadProgress;
-    return <RawImage {...nativeProps} />;
   }
 });
 

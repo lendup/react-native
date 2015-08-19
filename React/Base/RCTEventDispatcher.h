@@ -94,7 +94,8 @@ RCT_EXTERN NSString *RCTNormalizeInputEventName(NSString *eventName);
  */
 - (void)sendTextEventWithType:(RCTTextEventType)type
                      reactTag:(NSNumber *)reactTag
-                         text:(NSString *)text;
+                         text:(NSString *)text
+                   eventCount:(NSInteger)eventCount;
 
 /**
  * Send a pre-prepared event object.

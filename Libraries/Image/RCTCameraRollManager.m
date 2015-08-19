@@ -14,6 +14,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+#import "RCTBridge.h"
 #import "RCTImageLoader.h"
 #import "RCTLog.h"
 #import "RCTUtils.h"
@@ -21,6 +22,8 @@
 @implementation RCTCameraRollManager
 
 RCT_EXPORT_MODULE()
+
+@synthesize bridge = _bridge;
 
 RCT_EXPORT_METHOD(saveImageWithTag:(NSString *)imageTag
                   successCallback:(RCTResponseSenderBlock)successCallback

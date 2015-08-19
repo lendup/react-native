@@ -6,13 +6,8 @@
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
+'use strict';
 
-#import "RCTURLRequestHandler.h"
-#import "RCTInvalidating.h"
-
-/**
- * This is the default RCTURLRequestHandler implementation for HTTP requests.
- */
-@interface RCTHTTPRequestHandler : NSObject <RCTURLRequestHandler, RCTInvalidating>
-
-@end
+module.exports = {
+  dim: function(s) { return s; },
+};

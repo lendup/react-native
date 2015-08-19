@@ -43,7 +43,6 @@ typedef NS_ENUM(NSUInteger, RCTNullability) {
 
 - (void)invokeWithBridge:(RCTBridge *)bridge
                   module:(id)module
-               arguments:(NSArray *)arguments
-                 context:(NSNumber *)context;
+               arguments:(NSArray *)arguments;
 
 @end

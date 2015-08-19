@@ -26,9 +26,13 @@ if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
 }
 
 class Inspector extends React.Component {
+  _subs: ?Array<() => void>;
+
   constructor(props: Object) {
     super(props);
+
     this.state = {
+      devtoolsAgent: null,
       panelPos: 'bottom',
       inspecting: true,
       perfing: false,
@@ -107,6 +111,9 @@ class Inspector extends React.Component {
   }
 
   onTouchInstance(instance: Object, frame: Object, pointerY: number) {
+    if (this.state.devtoolsAgent) {
+      this.state.devtoolsAgent.selectFromReactInstance(instance, true);
+    }
     var hierarchy = InspectorUtils.getOwnerHierarchy(instance);
     var publicInstance = instance.getPublicInstance();
     var props = publicInstance.props || {};
@@ -149,6 +156,7 @@ class Inspector extends React.Component {
           />}
         <View style={[styles.panelContainer, panelContainerStyle]}>
           <InspectorPanel
+            devtoolsIsOpen={!!this.state.devtoolsAgent}
             inspecting={this.state.inspecting}
             perfing={this.state.perfing}
             setPerfing={this.setPerfing.bind(this)}

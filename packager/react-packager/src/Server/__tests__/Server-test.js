@@ -18,8 +18,7 @@ jest.setMock('worker-farm', function() { return function() {}; })
       }
     })
     .setMock('uglify-js')
-    .dontMock('../')
-    .setMock('chalk', { dim: function(s) { return s; } });
+    .dontMock('../');
 
 var Promise = require('promise');
 

@@ -33,11 +33,4 @@
 
 @property (nonatomic, readonly) RCTImageDownloader *imageDownloader;
 
-/**
- * Cancel an in-flight download. If multiple requets have been made for the
- * same image, only the request that relates to the token passed will be
- * cancelled.
- */
-- (void)cancelDownload:(RCTImageDownloadCancellationBlock)downloadToken;
-
 @end

@@ -128,18 +128,11 @@ RCT_EXPORT_MODULE()
       return;
     }
 
-    if (CGSizeEqualToSize(size, CGSizeZero)) {
-      // Target size wasn't available yet, so abort image drawing
-      block(nil, nil);
-      return;
-    }
-
     UIImage *image = [UIImage imageWithData:data scale:scale];
-    if (image) {
+    if (image && !CGSizeEqualToSize(size, CGSizeZero)) {
 
       // Get scale and size
-      CGFloat destScale = scale ?: RCTScreenScale();
-      CGRect imageRect = RCTClipRect(image.size, image.scale, size, destScale, resizeMode);
+      CGRect imageRect = RCTClipRect(image.size, scale, size, scale, resizeMode);
       CGSize destSize = RCTTargetSizeForClipRect(imageRect);
 
       // Decompress image at required size
@@ -152,13 +145,6 @@ RCT_EXPORT_MODULE()
 
     completionBlock(nil, image);
   }];
-}
-
-- (void)cancelDownload:(RCTImageDownloadCancellationBlock)downloadToken
-{
-  if (downloadToken) {
-    downloadToken();
-  }
 }
 
 @end

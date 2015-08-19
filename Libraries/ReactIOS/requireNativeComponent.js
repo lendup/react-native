@@ -15,7 +15,6 @@ var RCTUIManager = require('NativeModules').UIManager;
 var UnimplementedView = require('UnimplementedView');
 
 var createReactNativeComponentClass = require('createReactNativeComponentClass');
-var deepDiffer = require('deepDiffer');
 var insetsDiffer = require('insetsDiffer');
 var pointsDiffer = require('pointsDiffer');
 var matricesDiffer = require('matricesDiffer');
@@ -58,9 +57,8 @@ function requireNativeComponent(
   viewConfig.validAttributes = {};
   viewConfig.propTypes = componentInterface && componentInterface.propTypes;
   for (var key in nativeProps) {
-    // TODO: deep diff by default in diffRawProperties instead of setting it here
-    var differ = TypeToDifferMap[nativeProps[key]] || deepDiffer;
-    viewConfig.validAttributes[key] = {diff: differ};
+    var differ = TypeToDifferMap[nativeProps[key]];
+    viewConfig.validAttributes[key] = differ ? {diff: differ} : true;
   }
   if (__DEV__) {
     componentInterface && verifyPropTypes(

@@ -10,12 +10,15 @@
 
 #import <UIKit/UIKit.h>
 
+#import "RCTBridge.h"
 #import "RCTImageLoader.h"
 #import "RCTUtils.h"
 
 @implementation RCTImageRequestHandler
 
 RCT_EXPORT_MODULE()
+
+@synthesize bridge = _bridge;
 
 - (BOOL)canHandleRequest:(NSURLRequest *)request
 {

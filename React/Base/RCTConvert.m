@@ -11,6 +11,7 @@
 
 #import <objc/message.h>
 
+#import "RCTCache.h"
 #import "RCTDefines.h"
 
 @implementation RCTConvert
@@ -100,7 +101,11 @@ RCT_CONVERTER(NSString *, NSString, description)
 
     // Assume that it's a local path
     path = [path stringByRemovingPercentEncoding];
-    if (![path isAbsolutePath]) {
+    if ([path hasPrefix:@"~"]) {
+      // Path is inside user directory
+      path = [path stringByExpandingTildeInPath];
+    } else if (![path isAbsolutePath]) {
+      // Assume it's a resource path
       path = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:path];
     }
     return [NSURL fileURLWithPath:path];
@@ -381,10 +386,11 @@ RCT_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
 + (UIColor *)UIColor:(id)json
 {
   // Check color cache
-  static NSMutableDictionary *colorCache = nil;
+  static RCTCache *colorCache = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    colorCache = [[NSMutableDictionary alloc] init];
+    colorCache = [[RCTCache alloc] init];
+    colorCache.countLimit = 128;
   });
   UIColor *color = colorCache[json];
   if (color) {
@@ -644,36 +650,41 @@ RCT_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
     return nil;
   }
 
-  if (RCT_DEBUG && ![json isKindOfClass:[NSString class]] && ![json isKindOfClass:[NSDictionary class]]) {
-    RCTLogConvertError(json, "an image");
-    return nil;
-  }
-
   UIImage *image;
   NSString *path;
   CGFloat scale = 0.0;
   if ([json isKindOfClass:[NSString class]]) {
-    if ([json length] == 0) {
-      return nil;
-    }
     path = json;
-  } else {
+  } else if ([json isKindOfClass:[NSDictionary class]]) {
     path = [self NSString:json[@"uri"]];
     scale = [self CGFloat:json[@"scale"]];
   } else {
     RCTLogConvertError(json, @"an image");
   }
 
-  if ([path hasPrefix:@"data:"]) {
-    NSURL *url = [NSURL URLWithString:path];
-    NSData *imageData = [NSData dataWithContentsOfURL:url];
-    image = [UIImage imageWithData:imageData];
-  } else if ([path isAbsolutePath] || [path hasPrefix:@"~"]) {
-    image = [UIImage imageWithContentsOfFile:path.stringByExpandingTildeInPath];
-  } else {
-    image = [UIImage imageNamed:path];
+  NSURL *URL = [self NSURL:path];
+  NSString *scheme = [URL.scheme lowercaseString];
+  if ([scheme isEqualToString:@"file"]) {
+
+    if ([NSThread currentThread] == [NSThread mainThread]) {
+      // Image may reside inside a .car file, in which case we have no choice
+      // but to use +[UIImage imageNamed] - but this method isn't thread safe
+      image = [UIImage imageNamed:path];
+    }
+
     if (!image) {
-      image = [UIImage imageWithContentsOfFile:[[NSBundle mainBundle] pathForResource:path ofType:nil]];
+      // Attempt to load from the file system
+      if ([path pathExtension].length == 0) {
+        path = [path stringByAppendingPathExtension:@"png"];
+      }
+      image = [UIImage imageWithContentsOfFile:path];
+    }
+
+    // We won't warn about nil images because there are legitimate cases
+    // where we find out if a string is an image by using this method, but
+    // we do enforce thread-safe API usage with the following check
+    if (RCT_DEBUG && !image && [UIImage imageNamed:path]) {
+      RCTAssertMainThread();
     }
 
   } else if ([scheme isEqualToString:@"data"]) {
@@ -681,13 +692,12 @@ RCT_CGSTRUCT_CONVERTER(CGAffineTransform, (@[
   } else {
     RCTLogConvertError(json, @"an image. Only local files or data URIs are supported");
   }
-  
+
   if (scale > 0) {
-    image = [UIImage imageWithCGImage:image.CGImage scale:scale orientation:image.imageOrientation];
+    image = [UIImage imageWithCGImage:image.CGImage
+                                scale:scale
+                          orientation:image.imageOrientation];
   }
-  
-  // NOTE: we don't warn about nil images because there are legitimate
-  // case where we find out if a string is an image by using this method
   return image;
 }
 
@@ -981,6 +991,11 @@ static id RCTConvertPropertyListValue(id json)
 {
   return RCTConvertPropertyListValue(json);
 }
+
+RCT_ENUM_CONVERTER(css_backface_visibility_t, (@{
+  @"hidden": @NO,
+  @"visible": @YES
+}), YES, boolValue)
 
 RCT_ENUM_CONVERTER(css_clip_t, (@{
   @"hidden": @YES,

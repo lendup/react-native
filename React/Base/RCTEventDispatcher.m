@@ -132,6 +132,7 @@ RCT_EXPORT_MODULE()
 - (void)sendTextEventWithType:(RCTTextEventType)type
                      reactTag:(NSNumber *)reactTag
                          text:(NSString *)text
+                   eventCount:(NSInteger)eventCount
 {
   static NSString *events[] = {
     @"focus",
@@ -143,8 +144,10 @@ RCT_EXPORT_MODULE()
 
   [self sendInputEventWithName:events[type] body:text ? @{
     @"text": text,
+    @"eventCount": @(eventCount),
     @"target": reactTag
   } : @{
+    @"eventCount": @(eventCount),
     @"target": reactTag
   }];
 }

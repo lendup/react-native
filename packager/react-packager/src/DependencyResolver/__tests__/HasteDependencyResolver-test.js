@@ -10,8 +10,7 @@
 
 jest.dontMock('../')
   .dontMock('q')
-  .dontMock('../replacePatterns')
-  .setMock('chalk', { dim: function(s) { return s; } });
+  .dontMock('../replacePatterns');
 
 jest.mock('path');
 

@@ -27,7 +27,6 @@
 #import "RCTScrollableProtocol.h"
 #import "RCTShadowView.h"
 #import "RCTSparseArray.h"
-#import "RCTTouchHandler.h"
 #import "RCTUtils.h"
 #import "RCTView.h"
 #import "RCTViewManager.h"
@@ -887,7 +886,9 @@ RCT_EXPORT_METHOD(measure:(nonnull NSNumber *)reactTag
   [self addUIBlock:^(__unused RCTUIManager *uiManager, RCTSparseArray *viewRegistry) {
     UIView *view = viewRegistry[reactTag];
     if (!view) {
-      RCTLogError(@"measure cannot find view with tag #%@", reactTag);
+      // this view was probably collapsed out
+      RCTLogWarn(@"measure cannot find view with tag #%@", reactTag);
+      callback(@[]);
       return;
     }
     CGRect frame = view.frame;

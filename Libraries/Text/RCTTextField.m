@@ -19,6 +19,7 @@
   RCTEventDispatcher *_eventDispatcher;
   NSMutableArray *_reactSubviews;
   BOOL _jsRequestingFirstResponder;
+  NSInteger _nativeEventCount;
 }
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
@@ -40,7 +41,9 @@ RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
 
 - (void)setText:(NSString *)text
 {
-  if (![text isEqualToString:self.text]) {
+  NSInteger eventLag = _nativeEventCount - _mostRecentEventCount;
+  if (eventLag == 0 && ![text isEqualToString:self.text]) {
+    UITextRange *selection = self.selectedTextRange;
     [super setText:text];
     self.selectedTextRange = selection; // maintain cursor position/selection - this is robust to out of bounds
   } else if (eventLag > RCTTextUpdateLagWarningThreshold) {
@@ -158,10 +161,9 @@ static void RCTUpdatePlaceholder(RCTTextField *self)
   }
   [_eventDispatcher sendTextEventWithType:RCTTextEventTypeFocus
                                  reactTag:self.reactTag
-                                     text:self.text];
+                                     text:self.text
+                               eventCount:_nativeEventCount];
 }
-
-// TODO: we should support shouldChangeTextInRect (see UITextFieldDelegate)
 
 - (BOOL)becomeFirstResponder
 {
@@ -178,7 +180,8 @@ static void RCTUpdatePlaceholder(RCTTextField *self)
   {
     [_eventDispatcher sendTextEventWithType:RCTTextEventTypeBlur
                                    reactTag:self.reactTag
-                                       text:self.text];
+                                       text:self.text
+                                 eventCount:_nativeEventCount];
   }
   return result;
 }

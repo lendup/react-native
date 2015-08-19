@@ -15,10 +15,13 @@
 #import <Photos/PHImageManager.h>
 #import <UIKit/UIKit.h>
 
+#import "RCTBridge.h"
 #import "RCTConvert.h"
 #import "RCTDefines.h"
 #import "RCTGIFImage.h"
 #import "RCTImageDownloader.h"
+#import "RCTImageStoreManager.h"
+#import "RCTImageUtils.h"
 #import "RCTLog.h"
 #import "RCTUtils.h"
 
@@ -134,6 +137,8 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
           // Also make sure the image is released immediately after it's used so it
           // doesn't spike the memory up during the process.
           @autoreleasepool {
+
+            BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
             ALAssetRepresentation *representation = [asset defaultRepresentation];
 
             UIImage *image;
@@ -159,11 +164,12 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
       NSError *error = RCTErrorWithMessage(errorText);
       RCTDispatchCallbackOnMainQueue(completionBlock, error, nil);
     }];
+    return ^{};
   } else if ([imageTag hasPrefix:@"ph://"]) {
     // Using PhotoKit for iOS 8+
-    // 'ph://' prefix is used by FBMediaKit to differentiate between assets-library. It is prepended to the local ID so that it
-    // is in the form of NSURL which is what assets-library is based on.
-    // This means if we use any FB standard photo picker, we will get this prefix =(
+    // The 'ph://' prefix is used by FBMediaKit to differentiate between
+    // assets-library. It is prepended to the local ID so that it is in the
+    // form of an, NSURL which is what assets-library uses.
     NSString *phAssetID = [imageTag substringFromIndex:[@"ph://" length]];
     PHFetchResult *results = [PHAsset fetchAssetsWithLocalIdentifiers:@[phAssetID] options:nil];
     if (results.count == 0) {
@@ -174,7 +180,25 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
     }
 
     PHAsset *asset = [results firstObject];
-    [[PHImageManager defaultManager] requestImageForAsset:asset targetSize:PHImageManagerMaximumSize contentMode:PHImageContentModeDefault options:nil resultHandler:^(UIImage *result, NSDictionary *info) {
+
+    PHImageRequestOptions *imageOptions = [[PHImageRequestOptions alloc] init];
+
+    BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
+    CGSize targetSize;
+
+    if ( useMaximumSize ){
+      targetSize = PHImageManagerMaximumSize;
+      imageOptions.resizeMode = PHImageRequestOptionsResizeModeNone;
+    } else {
+      targetSize = size;
+      imageOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+    }
+
+    PHImageContentMode contentMode = PHImageContentModeAspectFill;
+    if (resizeMode == UIViewContentModeScaleAspectFit) {
+      contentMode = PHImageContentModeAspectFit;
+    }
+    [[PHImageManager defaultManager] requestImageForAsset:asset targetSize:targetSize contentMode:contentMode options:imageOptions resultHandler:^(UIImage *result, NSDictionary *info) {
       if (result) {
         RCTDispatchCallbackOnMainQueue(completionBlock, nil, result);
       } else {
@@ -184,6 +208,7 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
         return;
       }
     }];
+    return ^{};
   } else if ([imageTag hasPrefix:@"http"]) {
     NSURL *url = [RCTConvert NSURL:imageTag];
     if (!url) {
@@ -204,7 +229,8 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
         RCTDispatchCallbackOnMainQueue(completionBlock, error, nil);
       }
     }];
-  } else if ([[imageTag lowercaseString] hasSuffix:@".gif"]) {
+    return ^{};
+  } else if ([imageTag.lowercaseString hasSuffix:@".gif"]) {
     id image = RCTGIFImageWithFileURL([RCTConvert NSURL:imageTag]);
     if (image) {
       RCTDispatchCallbackOnMainQueue(completionBlock, nil, image);
@@ -213,6 +239,7 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
       NSError *error = RCTErrorWithMessage(errorMessage);
       RCTDispatchCallbackOnMainQueue(completionBlock, error, nil);
     }
+    return ^{};
   } else {
     UIImage *image = [RCTConvert UIImage:imageTag];
     if (image) {
@@ -222,7 +249,18 @@ static UIImage *RCTScaledImageForAsset(ALAssetRepresentation *representation,
       NSError *error = RCTErrorWithMessage(errorMessage);
       RCTDispatchCallbackOnMainQueue(completionBlock, error, nil);
     }
+    return ^{};
   }
+}
+
++ (BOOL)isAssetLibraryImage:(NSString *)imageTag
+{
+  return [imageTag hasPrefix:@"assets-library://"] || [imageTag hasPrefix:@"ph://"];
+}
+
++ (BOOL)isRemoteImage:(NSString *)imageTag
+{
+  return [imageTag hasPrefix:@"http://"] || [imageTag hasPrefix:@"https://"];
 }
 
 @end

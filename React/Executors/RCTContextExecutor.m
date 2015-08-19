@@ -12,6 +12,7 @@
 #import <pthread.h>
 
 #import <JavaScriptCore/JavaScriptCore.h>
+#import <UIKit/UIDevice.h>
 
 #import "RCTAssert.h"
 #import "RCTDefines.h"
@@ -285,6 +286,18 @@ static NSError *RCTNSErrorFromJSError(JSContextRef context, JSValueRef jsError)
     [strongSelf _addNativeHook:RCTConsoleProfile withName:"consoleProfile"];
     [strongSelf _addNativeHook:RCTConsoleProfileEnd withName:"consoleProfileEnd"];
 
+#if RCT_JSC_PROFILER
+    void *JSCProfiler = dlopen(RCT_JSC_PROFILER_DYLIB, RTLD_NOW);
+    if (JSCProfiler != NULL) {
+      JSObjectCallAsFunctionCallback nativeProfilerStart = dlsym(JSCProfiler, "nativeProfilerStart");
+      JSObjectCallAsFunctionCallback nativeProfilerEnd = dlsym(JSCProfiler, "nativeProfilerEnd");
+      if (nativeProfilerStart != NULL && nativeProfilerEnd != NULL) {
+        [strongSelf _addNativeHook:nativeProfilerStart withName:"nativeProfilerStart"];
+        [strongSelf _addNativeHook:nativeProfilerEnd withName:"nativeProfilerStop"];
+      }
+    }
+#endif
+
     for (NSString *event in @[RCTProfileDidStartProfiling, RCTProfileDidEndProfiling]) {
       [[NSNotificationCenter defaultCenter] addObserver:strongSelf
                                                selector:@selector(toggleProfilingFlag:)
@@ -336,6 +349,7 @@ static NSError *RCTNSErrorFromJSError(JSContextRef context, JSValueRef jsError)
                    onThread:_javaScriptThread
                  withObject:nil
               waitUntilDone:NO];
+  _context = nil;
 }
 
 - (void)dealloc
@@ -346,14 +360,13 @@ static NSError *RCTNSErrorFromJSError(JSContextRef context, JSValueRef jsError)
 - (void)executeJSCall:(NSString *)name
                method:(NSString *)method
             arguments:(NSArray *)arguments
-              context:(NSNumber *)executorID
              callback:(RCTJavaScriptCallback)onComplete
 {
   RCTAssert(onComplete != nil, @"onComplete block should not be nil");
   __weak RCTContextExecutor *weakSelf = self;
   [self executeBlockOnJavaScriptQueue:RCTProfileBlock((^{
     RCTContextExecutor *strongSelf = weakSelf;
-    if (!strongSelf || !strongSelf.isValid || ![RCTGetExecutorID(strongSelf) isEqualToNumber:executorID]) {
+    if (!strongSelf || !strongSelf.isValid) {
       return;
     }
     NSError *error;

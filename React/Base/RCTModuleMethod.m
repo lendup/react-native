@@ -358,7 +358,6 @@ void RCTParseObjCMethodName(NSString **objCMethodName, NSArray **arguments)
 - (void)invokeWithBridge:(RCTBridge *)bridge
                   module:(id)module
                arguments:(NSArray *)arguments
-                 context:(NSNumber *)context
 {
   if (RCT_DEBUG) {
 

@@ -267,7 +267,6 @@ RCT_NOT_IMPLEMENTED(-init)
     [RCTGetLatestExecutor() executeJSCall:@"RCTLog"
                                    method:@"logIfNoNativeHook"
                                 arguments:@[level, message]
-                                  context:RCTGetExecutorID(RCTGetLatestExecutor())
                                  callback:^(__unused id json, __unused NSError *error) {}];
   });
 }

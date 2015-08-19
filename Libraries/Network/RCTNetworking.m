@@ -11,18 +11,19 @@
 
 #import "RCTAssert.h"
 #import "RCTConvert.h"
+#import "RCTDownloadTask.h"
 #import "RCTURLRequestHandler.h"
 #import "RCTEventDispatcher.h"
 #import "RCTHTTPRequestHandler.h"
 #import "RCTLog.h"
 #import "RCTUtils.h"
 
-typedef void (^RCTHTTPQueryResult)(NSError *error, NSDictionary *result);
+typedef RCTURLRequestCancellationBlock (^RCTHTTPQueryResult)(NSError *error, NSDictionary *result);
 
-@interface RCTNetworking ()<RCTURLRequestDelegate>
+@interface RCTNetworking ()
 
-- (void)processDataForHTTPQuery:(NSDictionary *)data callback:(void (^)(NSError *error, NSDictionary *result))callback;
-
+- (RCTURLRequestCancellationBlock)processDataForHTTPQuery:(NSDictionary *)data
+                                                 callback:(RCTHTTPQueryResult)callback;
 @end
 
 /**
@@ -30,7 +31,7 @@ typedef void (^RCTHTTPQueryResult)(NSError *error, NSDictionary *result);
  */
 @interface RCTHTTPFormDataHelper : NSObject
 
-@property (nonatomic, weak) RCTNetworking *dataManager;
+@property (nonatomic, weak) RCTNetworking *networker;
 
 @end
 
@@ -42,51 +43,49 @@ typedef void (^RCTHTTPQueryResult)(NSError *error, NSDictionary *result);
   NSString *boundary;
 }
 
-- (void)process:(NSArray *)formData callback:(void (^)(NSError *error, NSDictionary *result))callback
+static NSString *RCTGenerateFormBoundary()
 {
-  if (![formData count]) {
-    callback(nil, nil);
-    return;
+  const size_t boundaryLength = 70;
+  const char *boundaryChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./";
+
+  char *bytes = malloc(boundaryLength);
+  size_t charCount = strlen(boundaryChars);
+  for (int i = 0; i < boundaryLength; i++) {
+    bytes[i] = boundaryChars[arc4random_uniform((u_int32_t)charCount)];
   }
+  return [[NSString alloc] initWithBytesNoCopy:bytes length:boundaryLength encoding:NSUTF8StringEncoding freeWhenDone:YES];
+}
+
+- (RCTURLRequestCancellationBlock)process:(NSArray *)formData
+                                 callback:(RCTHTTPQueryResult)callback
+{
+  if (formData.count == 0) {
+    return callback(nil, nil);
+  }
+
   parts = [formData mutableCopy];
   _callback = callback;
   multipartBody = [[NSMutableData alloc] init];
-  boundary = [self generateBoundary];
+  boundary = RCTGenerateFormBoundary();
 
-  NSDictionary *currentPart = [parts objectAtIndex: 0];
-  [_dataManager processDataForHTTPQuery:currentPart callback:^(NSError *e, NSDictionary *r) {
-    [self handleResult:r error:e];
+  return [_networker processDataForHTTPQuery:parts[0] callback:^(NSError *error, NSDictionary *result) {
+    return [self handleResult:result error:error];
   }];
 }
 
-- (NSString *)generateBoundary
-{
-  NSString *const boundaryChars = @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./";
-  const NSUInteger boundaryLength = 70;
-
-  NSMutableString *output = [NSMutableString stringWithCapacity:boundaryLength];
-  NSUInteger numchars = [boundaryChars length];
-  for (NSUInteger i = 0; i < boundaryLength; i++) {
-    [output appendFormat:@"%C", [boundaryChars characterAtIndex:arc4random_uniform((u_int32_t)numchars)]];
-  }
-  return output;
-}
-
-- (void)handleResult:(NSDictionary *)result error:(NSError *)error
+- (RCTURLRequestCancellationBlock)handleResult:(NSDictionary *)result
+                                         error:(NSError *)error
 {
   if (error) {
-    _callback(error, nil);
-    return;
+    return _callback(error, nil);
   }
-  NSDictionary *currentPart = parts[0];
-  [parts removeObjectAtIndex:0];
 
   // Start with boundary.
   [multipartBody appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary]
                              dataUsingEncoding:NSUTF8StringEncoding]];
 
   // Print headers.
-  NSMutableDictionary *headers = [(NSDictionary*)currentPart[@"headers"] mutableCopy];
+  NSMutableDictionary *headers = [parts[0][@"headers"] mutableCopy];
   NSString *partContentType = result[@"contentType"];
   if (partContentType != nil) {
     [headers setObject:partContentType forKey:@"content-type"];
@@ -101,105 +100,18 @@ typedef void (^RCTHTTPQueryResult)(NSError *error, NSDictionary *result);
   [multipartBody appendData:result[@"body"]];
   [multipartBody appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
 
-  if ([parts count]) {
-    NSDictionary *nextPart = [parts objectAtIndex: 0];
-    [_dataManager processDataForHTTPQuery:nextPart callback:^(NSError *e, NSDictionary *r) {
-      [self handleResult:r error:e];
+  [parts removeObjectAtIndex:0];
+  if (parts.count) {
+    return [_networker processDataForHTTPQuery:parts[0] callback:^(NSError *err, NSDictionary *res) {
+      return [self handleResult:res error:err];
     }];
-    return;
   }
 
   // We've processed the last item. Finish and return.
   [multipartBody appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary]
                              dataUsingEncoding:NSUTF8StringEncoding]];
   NSString *contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=\"%@\"", boundary];
-  _callback(nil, @{@"body": multipartBody, @"contentType": contentType});
-}
-
-@end
-
-/**
- * Helper to package in-flight requests together with their response data.
- */
-@interface RCTActiveURLRequest : NSObject
-
-@property (nonatomic, strong) NSNumber *requestID;
-@property (nonatomic, strong) NSURLRequest *request;
-@property (nonatomic, strong) id<RCTURLRequestHandler> handler;
-@property (nonatomic, assign) BOOL incrementalUpdates;
-@property (nonatomic, strong) NSURLResponse *response;
-@property (nonatomic, strong) NSMutableData *data;
-
-@end
-
-@implementation RCTActiveURLRequest
-
-- (instancetype)init
-{
-  if ((self = [super init])) {
-    _data = [[NSMutableData alloc] init];
-  }
-  return self;
-}
-
-@end
-
-/**
- * Helper to load request body data using a handler.
- */
-@interface RCTDataLoader : NSObject <RCTURLRequestDelegate>
-
-@end
-
-typedef void (^RCTDataLoaderCallback)(NSData *data, NSString *MIMEType, NSError *error);
-
-@implementation RCTDataLoader
-{
-  RCTDataLoaderCallback _callback;
-  RCTActiveURLRequest *_request;
-  id _requestToken;
-}
-
-- (instancetype)initWithRequest:(NSURLRequest *)request
-                        handler:(id<RCTURLRequestHandler>)handler
-                       callback:(RCTDataLoaderCallback)callback
-{
-   RCTAssertParam(request);
-   RCTAssertParam(handler);
-   RCTAssertParam(callback);
-
-  if ((self = [super init])) {
-    _callback = callback;
-    _request = [[RCTActiveURLRequest alloc] init];
-    _request.request = request;
-    _request.handler = handler;
-    _request.incrementalUpdates = NO;
-    _requestToken = [handler sendRequest:request withDelegate:self];
-  }
-  return self;
-}
-
-- (instancetype)init
-{
-  return [self initWithRequest:nil handler:nil callback:nil];
-}
-
-- (void)URLRequest:(id)requestToken didReceiveResponse:(NSURLResponse *)response
-{
-  RCTAssert([requestToken isEqual:_requestToken], @"Shouldn't ever happen");
-  _request.response = response;
-}
-
-- (void)URLRequest:(id)requestToken didReceiveData:(NSData *)data
-{
-  RCTAssert([requestToken isEqual:_requestToken], @"Shouldn't ever happen");
-  [_request.data appendData:data];
-}
-
-- (void)URLRequest:(id)requestToken didCompleteWithError:(NSError *)error
-{
-  RCTAssert(_callback != nil, @"The callback property must be set");
-  _callback(_request.data, _request.response.MIMEType, error);
+  return _callback(nil, @{@"body": multipartBody, @"contentType": contentType});
 }
 
 @end
@@ -209,8 +121,7 @@ typedef void (^RCTDataLoaderCallback)(NSData *data, NSString *MIMEType, NSError 
  */
 @implementation RCTNetworking
 {
-  NSInteger _currentRequestID;
-  NSMapTable *_activeRequests;
+  NSMutableDictionary *_tasksByRequestID;
 }
 
 @synthesize bridge = _bridge;
@@ -221,39 +132,40 @@ RCT_EXPORT_MODULE()
 - (instancetype)init
 {
   if ((self = [super init])) {
-    _currentRequestID = 0;
-    _activeRequests = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsStrongMemory
-                                                valueOptions:NSPointerFunctionsStrongMemory
-                                                    capacity:0];
+    _tasksByRequestID = [[NSMutableDictionary alloc] init];
   }
   return self;
 }
 
-- (void)buildRequest:(NSDictionary *)query
-      responseSender:(RCTResponseSenderBlock)responseSender
+- (RCTURLRequestCancellationBlock)buildRequest:(NSDictionary *)query
+                                 completionBlock:(void (^)(NSURLRequest *request))block
 {
   NSURL *URL = [RCTConvert NSURL:query[@"url"]];
   NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
   request.HTTPMethod = [[RCTConvert NSString:query[@"method"]] uppercaseString] ?: @"GET";
   request.allHTTPHeaderFields = [RCTConvert NSDictionary:query[@"headers"]];
 
-  BOOL incrementalUpdates = [RCTConvert BOOL:query[@"incrementalUpdates"]];
-
   NSDictionary *data = [RCTConvert NSDictionary:query[@"data"]];
-  [self processDataForHTTPQuery:data callback:^(NSError *error, NSDictionary *result) {
+  return [self processDataForHTTPQuery:data callback:^(NSError *error, NSDictionary *result) {
     if (error) {
       RCTLogError(@"Error processing request body: %@", error);
       // Ideally we'd circle back to JS here and notify an error/abort on the request.
-      return;
+      return (RCTURLRequestCancellationBlock)nil;
     }
     request.HTTPBody = result[@"body"];
     NSString *contentType = result[@"contentType"];
     if (contentType) {
-      [request setValue:contentType forHTTPHeaderField:@"content-type"];
+      [request setValue:contentType forHTTPHeaderField:@"Content-Type"];
     }
-    [self sendRequest:request
-   incrementalUpdates:incrementalUpdates
-       responseSender:responseSender];
+
+    // Gzip the request body
+    if ([request.allHTTPHeaderFields[@"Content-Encoding"] isEqualToString:@"gzip"]) {
+      request.HTTPBody = RCTGzipData(request.HTTPBody, -1 /* default */);
+      [request setValue:[@(request.HTTPBody.length) description] forHTTPHeaderField:@"Content-Length"];
+    }
+
+    block(request);
+    return (RCTURLRequestCancellationBlock)nil;
   }];
 }
 
@@ -308,16 +220,15 @@ RCT_EXPORT_MODULE()
  * - @"contentType" (NSString): the content type header of the request
  *
  */
-- (void)processDataForHTTPQuery:(NSDictionary *)query callback:(void (^)(NSError *error, NSDictionary *result))callback
+- (RCTURLRequestCancellationBlock)processDataForHTTPQuery:(NSDictionary *)query callback:
+(RCTURLRequestCancellationBlock (^)(NSError *error, NSDictionary *result))callback
 {
   if (!query) {
-    callback(nil, nil);
-    return;
+    return callback(nil, nil);
   }
   NSData *body = [RCTConvert NSData:query[@"string"]];
   if (body) {
-    callback(nil, @{@"body": body});
-    return;
+    return callback(nil, @{@"body": body});
   }
   NSURLRequest *request = [RCTConvert NSURLRequest:query[@"uri"]];
   if (request) {
@@ -333,48 +244,27 @@ RCT_EXPORT_MODULE()
       if (cancellationBlock) {
         cancellationBlock();
       }
-    }];
-    return;
+    };
   }
   NSDictionaryArray *formData = [RCTConvert NSDictionaryArray:query[@"formData"]];
-  if (formData != nil) {
+  if (formData) {
     RCTHTTPFormDataHelper *formDataHelper = [[RCTHTTPFormDataHelper alloc] init];
-    formDataHelper.dataManager = self;
-    [formDataHelper process:formData callback:callback];
-    return;
+    formDataHelper.networker = self;
+    return [formDataHelper process:formData callback:callback];
   }
   // Nothing in the data payload, at least nothing we could understand anyway.
   // Ignore and treat it as if it were null.
-  callback(nil, nil);
+  return callback(nil, nil);
 }
 
-- (void)sendRequest:(NSURLRequest *)request
- incrementalUpdates:(BOOL)incrementalUpdates
-     responseSender:(RCTResponseSenderBlock)responseSender
-{
-  id<RCTURLRequestHandler> handler = [self handlerForRequest:request];
-  id token = [handler sendRequest:request withDelegate:self];
-  if (token) {
-    RCTActiveURLRequest *activeRequest = [[RCTActiveURLRequest alloc] init];
-    activeRequest.requestID = @(++_currentRequestID);
-    activeRequest.request = request;
-    activeRequest.handler = handler;
-    activeRequest.incrementalUpdates = incrementalUpdates;
-    [_activeRequests setObject:activeRequest forKey:token];
-    responseSender(@[activeRequest.requestID]);
-  }
-}
-
-- (void)sendData:(NSData *)data forRequestToken:(id)requestToken
+- (void)sendData:(NSData *)data forTask:(RCTDownloadTask *)task
 {
   if (data.length == 0) {
     return;
   }
 
-  RCTActiveURLRequest *request = [_activeRequests objectForKey:requestToken];
-
   // Get text encoding
-  NSURLResponse *response = request.response;
+  NSURLResponse *response = task.response;
   NSStringEncoding encoding = NSUTF8StringEncoding;
   if (response.textEncodingName) {
     CFStringEncoding cfEncoding = CFStringConvertIANACharSetNameToEncoding((CFStringRef)response.textEncodingName);
@@ -387,14 +277,14 @@ RCT_EXPORT_MODULE()
     return;
   }
 
-  NSArray *responseJSON = @[request.requestID, responseText ?: @""];
+  NSArray *responseJSON = @[task.requestID, responseText ?: @""];
   [_bridge.eventDispatcher sendDeviceEventWithName:@"didReceiveNetworkData"
                                               body:responseJSON];
 }
 
-#pragma mark - RCTURLRequestDelegate
-
-- (void)URLRequest:(id)requestToken didReceiveResponse:(NSURLResponse *)response
+- (void)sendRequest:(NSURLRequest *)request
+ incrementalUpdates:(BOOL)incrementalUpdates
+     responseSender:(RCTResponseSenderBlock)responseSender
 {
   __block RCTDownloadTask *task;
 
@@ -438,50 +328,22 @@ RCT_EXPORT_MODULE()
                                 RCTNullIfNil(error.localizedDescription),
                                 ];
 
-    NSHTTPURLResponse *httpResponse = nil;
-    if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
-      // Might be a local file request
-      httpResponse = (NSHTTPURLResponse *)response;
-    }
+      [_bridge.eventDispatcher sendDeviceEventWithName:@"didCompleteNetworkResponse"
+                                                  body:responseJSON];
 
-    NSArray *responseJSON = @[request.requestID,
-                              @(httpResponse.statusCode ?: 200),
-                              httpResponse.allHeaderFields ?: @{},
-                              ];
+      [_tasksByRequestID removeObjectForKey:task.requestID];
+    });
+  };
 
   task = [self downloadTaskWithRequest:request completionBlock:completionBlock];
   task.incrementalDataBlock = incrementalDataBlock;
   task.responseBlock = responseBlock;
   task.uploadProgressBlock = uploadProgressBlock;
 
-    if (request.incrementalUpdates) {
-      [self sendData:data forRequestToken:requestToken];
-    } else {
-      [request.data appendData:data];
-    }
-  });
-}
-
-- (void)URLRequest:(id)requestToken didCompleteWithError:(NSError *)error
-{
-  dispatch_async(_methodQueue, ^{
-    RCTActiveURLRequest *request = [_activeRequests objectForKey:requestToken];
-    RCTAssert(request != nil, @"Unrecognized request token: %@", requestToken);
-
-    if (!request.incrementalUpdates) {
-      [self sendData:request.data forRequestToken:requestToken];
-    }
-
-    NSArray *responseJSON = @[
-      request.requestID,
-      RCTNullIfNil(error.localizedDescription),
-    ];
-
-    [_bridge.eventDispatcher sendDeviceEventWithName:@"didCompleteNetworkResponse"
-                                                body:responseJSON];
-
-    [_activeRequests removeObjectForKey:requestToken];
-  });
+  if (task.requestID) {
+    _tasksByRequestID[task.requestID] = task;
+    responseSender(@[task.requestID]);
+  }
 }
 
 #pragma mark - Public API
@@ -504,26 +366,22 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(sendRequest:(NSDictionary *)query
                   responseSender:(RCTResponseSenderBlock)responseSender)
 {
-  [self buildRequest:query responseSender:responseSender];
+  // TODO: buildRequest returns a cancellation block, but there's currently
+  // no way to invoke it, if, for example the request is cancelled while
+  // loading a large file to build the request body
+  [self buildRequest:query completionBlock:^(NSURLRequest *request) {
+
+    BOOL incrementalUpdates = [RCTConvert BOOL:query[@"incrementalUpdates"]];
+    [self sendRequest:request
+   incrementalUpdates:incrementalUpdates
+       responseSender:responseSender];
+  }];
 }
 
 RCT_EXPORT_METHOD(cancelRequest:(nonnull NSNumber *)requestID)
 {
-  id requestToken = nil;
-  RCTActiveURLRequest *activeRequest = nil;
-  for (id token in _activeRequests) {
-    RCTActiveURLRequest *request = [_activeRequests objectForKey:token];
-    if ([request.requestID isEqualToNumber:requestID]) {
-      activeRequest = request;
-      requestToken = token;
-      break;
-    }
-  }
-
-  id<RCTURLRequestHandler> handler = activeRequest.handler;
-  if ([handler respondsToSelector:@selector(cancelRequest:)]) {
-    [activeRequest.handler cancelRequest:requestToken];
-  }
+  [_tasksByRequestID[requestID] cancel];
+  [_tasksByRequestID removeObjectForKey:requestID];
 }
 
 @end

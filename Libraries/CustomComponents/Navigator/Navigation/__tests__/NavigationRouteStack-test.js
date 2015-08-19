@@ -48,17 +48,17 @@ describe('NavigationRouteStack:', () => {
   // Basic
   it('gets index', () => {
     var stack = new NavigationRouteStack(1, ['a', 'b', 'c']);
-    expect(stack.index).toEqual(1);
+    expect(stack.index).toBe(1);
   });
 
   it('gets size', () => {
     var stack = new NavigationRouteStack(1, ['a', 'b', 'c']);
-    expect(stack.size).toEqual(3);
+    expect(stack.size).toBe(3);
   });
 
   it('gets route', () => {
     var stack = new NavigationRouteStack(0, ['a', 'b', 'c']);
-    expect(stack.get(2)).toEqual('c');
+    expect(stack.get(2)).toBe('c');
   });
 
   it('converts to an array', () => {
@@ -69,7 +69,7 @@ describe('NavigationRouteStack:', () => {
   it('creates a new stack after mutation', () => {
     var stack1 = new NavigationRouteStack(0, ['a', 'b']);
     var stack2 = stack1.push('c');
-    expect(stack1).not.toEqual(stack2);
+    expect(stack1).not.toBe(stack2);
   });
 
   it('throws at index out of bound', () => {
@@ -215,10 +215,10 @@ describe('NavigationRouteStack:', () => {
     var stack1 = new NavigationRouteStack(1, ['a', 'b']);
     var stack2 = stack1.push('c');
 
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['a', 'b', 'c']);
-    expect(stack2.index).toEqual(2);
-    expect(stack2.size).toEqual(3);
+    expect(stack2.index).toBe(2);
+    expect(stack2.size).toBe(3);
   });
 
   it('throws when pushing empty route', () => {
@@ -241,27 +241,27 @@ describe('NavigationRouteStack:', () => {
   it('replaces routes on push', () => {
     var stack1 = new NavigationRouteStack(1, ['a', 'b', 'c']);
     var stack2 = stack1.push('d');
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['a', 'b', 'd']);
-    expect(stack2.index).toEqual(2);
+    expect(stack2.index).toBe(2);
   });
 
   // Pop
   it('pops route', () => {
     var stack1 = new NavigationRouteStack(2, ['a', 'b', 'c']);
     var stack2 = stack1.pop();
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['a', 'b']);
-    expect(stack2.index).toEqual(1);
-    expect(stack2.size).toEqual(2);
+    expect(stack2.index).toBe(1);
+    expect(stack2.size).toBe(2);
   });
 
   it('replaces routes on pop', () => {
     var stack1 = new NavigationRouteStack(1, ['a', 'b', 'c']);
     var stack2 = stack1.pop();
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['a']);
-    expect(stack2.index).toEqual(0);
+    expect(stack2.index).toBe(0);
   });
 
   it('throws when popping to empty stack', () => {
@@ -276,8 +276,8 @@ describe('NavigationRouteStack:', () => {
     var stack1 = new NavigationRouteStack(0, ['a', 'b', 'c']);
     var stack2 = stack1.jumpToIndex(2);
 
-    expect(stack2).not.toEqual(stack1);
-    expect(stack2.index).toEqual(2);
+    expect(stack2).not.toBe(stack1);
+    expect(stack2.index).toBe(2);
   });
 
   it('throws then jumping to index out of bound', () => {
@@ -297,7 +297,7 @@ describe('NavigationRouteStack:', () => {
     var stack1 = new NavigationRouteStack(1, ['a', 'b']);
     var stack2 = stack1.replaceAtIndex(0, 'x');
 
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['x', 'b']);
     expect(stack2.index).toBe(0);
   });
@@ -306,11 +306,10 @@ describe('NavigationRouteStack:', () => {
     var stack1 = new NavigationRouteStack(1, ['a', 'b']);
     var stack2 = stack1.replaceAtIndex(-1, 'x');
 
-    expect(stack2).not.toEqual(stack1);
+    expect(stack2).not.toBe(stack1);
     expect(stack2.toArray()).toEqual(['a', 'x']);
-    expect(stack2.index).toEqual(1);
+    expect(stack2.index).toBe(1);
   });
-
 
   it('throws when replacing empty route', () => {
     expect(() => {
