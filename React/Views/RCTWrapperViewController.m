@@ -96,6 +96,14 @@ static UIView *RCTFindNavBarShadowViewInView(UIView *view)
       NSForegroundColorAttributeName: _navItem.titleTextColor
     } : nil;
 
+    //TODO: (rgv) custom text style
+    if (_navItem.titleTextColor) {
+      [bar setTitleTextAttributes:@{
+        NSForegroundColorAttributeName : _navItem.titleTextColor,
+        NSFontAttributeName : [UIFont fontWithName:@"OpenSans-SemiBold" size:20],
+      }];
+    }
+
     RCTFindNavBarShadowViewInView(bar).hidden = _navItem.shadowHidden;
 
     UINavigationItem *item = self.navigationItem;
