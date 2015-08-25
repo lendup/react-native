@@ -55,7 +55,7 @@
 
 - (void)setLeftButtonIcon:(UIImage *)leftButtonIcon
 {
-  _leftButtonIcon = leftButtonIcon;
+  _leftButtonIcon = [leftButtonIcon imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
   _leftButtonItem = nil;
 }
 
@@ -87,7 +87,7 @@
 
 - (void)setRightButtonIcon:(UIImage *)rightButtonIcon
 {
-  _rightButtonIcon = rightButtonIcon;
+  _rightButtonIcon = [rightButtonIcon imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
   _rightButtonItem = nil;
 }
 
