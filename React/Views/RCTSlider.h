@@ -9,6 +9,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface RCTSlider : UISlider
+@interface RCTSlider : RCTCustomUISlider
 
 @end
