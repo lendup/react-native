@@ -35,14 +35,15 @@
 
     _textView = [[UITextView alloc] initWithFrame:self.bounds];
     _textView.backgroundColor = [UIColor clearColor];
+    _textView.scrollsToTop = NO;
     _textView.delegate = self;
     [self addSubview:_textView];
   }
   return self;
 }
 
-RCT_NOT_IMPLEMENTED(-initWithFrame:(CGRect)frame)
-RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
+RCT_NOT_IMPLEMENTED(- (instancetype)initWithFrame:(CGRect)frame)
+RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 
 - (void)updateFrames
 {
@@ -166,7 +167,7 @@ RCT_NOT_IMPLEMENTED(-initWithCoder:(NSCoder *)aDecoder)
   NSInteger eventLag = _nativeEventCount - _mostRecentEventCount;
   if (eventLag == 0 && ![text isEqualToString:_textView.text]) {
     UITextRange *selection = _textView.selectedTextRange;
-    [_textView setText:text];
+    _textView.text = text;
     [self _setPlaceholderVisibility];
     _textView.selectedTextRange = selection; // maintain cursor position/selection - this is robust to out of bounds
   } else if (eventLag > RCTTextUpdateLagWarningThreshold) {

@@ -44,12 +44,12 @@ var AccessibilityTraits = [
   'pageTurn',
 ];
 
-
-// <<<<< WARNING >>>>>
-// If adding any properties to View that could change the way layout-only status
-// works on iOS, make sure to update ReactNativeViewAttributes.js and
-// RCTShadowView.m (in the -[RCTShadowView isLayoutOnly] method).
-// <<<<< WARNING >>>>>
+var AccessibilityComponentType = [
+  'none',
+  'button',
+  'radiobutton_checked',
+  'radiobutton_unchecked',
+];
 
 /**
  * The most fundamental component for building UI, `View` is a
@@ -83,6 +83,11 @@ var View = React.createClass({
     validAttributes: ReactNativeViewAttributes.RCTView
   },
 
+  statics: {
+    AccessibilityTraits,
+    AccessibilityComponentType,
+  },
+
   propTypes: {
     /**
      * When true, indicates that the view is an accessibility element. By default,
@@ -100,17 +105,16 @@ var View = React.createClass({
     /**
      * Indicates to accessibility services to treat UI component like a
      * native one. Works for Android only.
+     * @platform android
      */
-    accessibilityComponentType: PropTypes.oneOf([
-      'none',
-      'button',
-    ]),
+    accessibilityComponentType: PropTypes.oneOf(AccessibilityComponentType),
 
     /**
      * Indicates to accessibility services whether the user should be notified
      * when this view changes. Works for Android API >= 19 only.
      * See http://developer.android.com/reference/android/view/View.html#attr_android:accessibilityLiveRegion
      * for references.
+     * @platform android
      */
     accessibilityLiveRegion: PropTypes.oneOf([
       'none',
@@ -119,8 +123,32 @@ var View = React.createClass({
     ]),
 
     /**
+     * Controls how view is important for accessibility which is if it
+     * fires accessibility events and if it is reported to accessibility services
+     * that query the screen. Works for Android only.
+     * See http://developer.android.com/reference/android/R.attr.html#importantForAccessibility
+     * for references.
+     * Possible values:
+     * 'auto' - The system determines whether the view is important for accessibility -
+     *    default (recommended).
+     * 'yes' - The view is important for accessibility.
+     * 'no' - The view is not important for accessibility.
+     * 'no-hide-descendants' - The view is not important for accessibility,
+     *    nor are any of its descendant views.
+     *
+     * @platform android
+     */
+    importantForAccessibility: PropTypes.oneOf([
+      'auto',
+      'yes',
+      'no',
+      'no-hide-descendants',
+    ]),
+
+    /**
      * Provides additional traits to screen reader. By default no traits are
      * provided unless specified otherwise in element
+     * @platform ios
      */
     accessibilityTraits: PropTypes.oneOfType([
       PropTypes.oneOf(AccessibilityTraits),
@@ -131,7 +159,7 @@ var View = React.createClass({
      * When `accessible` is true, the system will try to invoke this function
      * when the user performs accessibility tap gesture.
      */
-    onAcccessibilityTap: PropTypes.func,
+    onAccessibilityTap: PropTypes.func,
 
     /**
      * When `accessible` is true, the system will invoke this function when the
@@ -164,6 +192,10 @@ var View = React.createClass({
      * Invoked on mount and layout changes with
      *
      *   {nativeEvent: { layout: {x, y, width, height}}}.
+     *
+     * This event is fired immediately once the layout has been calculated, but
+     * the new layout may not yet be reflected on the screen at the time the
+     * event is received, especially if a layout animation is in progress.
      */
     onLayout: PropTypes.func,
 
@@ -246,9 +278,36 @@ var View = React.createClass({
     shouldRasterizeIOS: PropTypes.bool,
 
     /**
+     * Views that are only used to layout their children or otherwise don't draw
+     * anything may be automatically removed from the native hierarchy as an
+     * optimization. Set this property to `false` to disable this optimization and
+     * ensure that this View exists in the native view hierarchy.
      * @platform android
      */
     collapsable: PropTypes.bool,
+
+    /**
+     * Whether this view needs to rendered offscreen and composited with an alpha
+     * in order to preserve 100% correct colors and blending behavior. The default
+     * (false) falls back to drawing the component and its children with an alpha
+     * applied to the paint used to draw each element instead of rendering the full
+     * component offscreen and compositing it back with an alpha value. This default
+     * may be noticeable and undesired in the case where the View you are setting
+     * an opacity on has multiple overlapping elements (e.g. multiple overlapping
+     * Views, or text and a background).
+     *
+     * Rendering offscreen to preserve correct alpha behavior is extremely
+     * expensive and hard to debug for non-native developers, which is why it is
+     * not turned on by default. If you do need to enable this property for an
+     * animation, consider combining it with renderToHardwareTextureAndroid if the
+     * view **contents** are static (i.e. it doesn't need to be redrawn each frame).
+     * If that property is enabled, this View will be rendered off-screen once,
+     * saved in a hardware texture, and then composited onto the screen with an alpha
+     * each frame without having to switch rendering targets on the GPU.
+     *
+     * @platform android
+     */
+    needsOffscreenAlphaCompositing: PropTypes.bool,
   },
 
   render: function() {

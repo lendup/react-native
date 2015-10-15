@@ -51,17 +51,22 @@ RCT_EXPORT_MODULE()
 
 - (dispatch_queue_t)methodQueue
 {
-  return [_bridge.uiManager methodQueue];
+  return _bridge.uiManager.methodQueue;
+}
+
+- (UIView *)viewWithProps:(__unused NSDictionary *)props
+{
+  return [self view];
 }
 
 - (UIView *)view
 {
-  return [[RCTView alloc] init];
+  return [RCTView new];
 }
 
 - (RCTShadowView *)shadowView
 {
-  return [[RCTShadowView alloc] init];
+  return [RCTShadowView new];
 }
 
 - (NSArray *)customBubblingEventTypes
@@ -70,7 +75,6 @@ RCT_EXPORT_MODULE()
 
     // Generic events
     @"press",
-    @"change",
     @"change",
     @"focus",
     @"blur",
@@ -87,11 +91,7 @@ RCT_EXPORT_MODULE()
 
 - (NSArray *)customDirectEventTypes
 {
-  return @[
-    @"layout",
-    @"accessibilityTap",
-    @"magicTap",
-  ];
+  return @[];
 }
 
 - (NSDictionary *)constantsToExport
@@ -190,27 +190,8 @@ RCT_CUSTOM_VIEW_PROPERTY(borderWidth, CGFloat, RCTView)
     view.layer.borderWidth = json ? [RCTConvert CGFloat:json] : defaultView.layer.borderWidth;
   }
 }
-RCT_CUSTOM_VIEW_PROPERTY(onAccessibilityTap, BOOL, __unused RCTView)
-{
-  view.accessibilityTapHandler = [self eventHandlerWithName:@"accessibilityTap" json:json];
-}
-RCT_CUSTOM_VIEW_PROPERTY(onMagicTap, BOOL, __unused RCTView)
-{
-  view.magicTapHandler = [self eventHandlerWithName:@"magicTap" json:json];
-}
-
-- (RCTViewEventHandler)eventHandlerWithName:(NSString *)eventName json:(id)json
-{
-  RCTViewEventHandler handler = nil;
-  if ([RCTConvert BOOL:json]) {
-    __weak RCTViewManager *weakSelf = self;
-    handler = ^(RCTView *tappedView) {
-      NSDictionary *body = @{ @"target": tappedView.reactTag };
-      [weakSelf.bridge.eventDispatcher sendInputEventWithName:eventName body:body];
-    };
-  }
-  return handler;
-}
+RCT_EXPORT_VIEW_PROPERTY(onAccessibilityTap, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onMagicTap, RCTDirectEventBlock)
 
 #define RCT_VIEW_BORDER_PROPERTY(SIDE)                                  \
 RCT_CUSTOM_VIEW_PROPERTY(border##SIDE##Width, CGFloat, RCTView)         \
@@ -286,6 +267,6 @@ RCT_EXPORT_SHADOW_PROPERTY(alignItems, css_align_t)
 RCT_EXPORT_SHADOW_PROPERTY(alignSelf, css_align_t)
 RCT_EXPORT_SHADOW_PROPERTY(position, css_position_type_t)
 
-RCT_EXPORT_SHADOW_PROPERTY(onLayout, BOOL)
+RCT_EXPORT_SHADOW_PROPERTY(onLayout, RCTDirectEventBlock)
 
 @end

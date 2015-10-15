@@ -60,9 +60,13 @@ var Image = React.createClass({
      * could be an http address, a local file path, or the name of a static image
      * resource (which should be wrapped in the `require('image!name')` function).
      */
-    source: PropTypes.shape({
-      uri: PropTypes.string,
-    }),
+    source: PropTypes.oneOfType([
+      PropTypes.shape({
+        uri: PropTypes.string,
+      }),
+      // Opaque type returned by require('./image.jpg')
+      PropTypes.number,
+    ]),
     /**
      * A static image to display while downloading the final image off the
      * network.
@@ -165,6 +169,12 @@ var Image = React.createClass({
     var RawImage = isNetwork ? RCTNetworkImageView : RCTImageView;
     var resizeMode = this.props.resizeMode || (style || {}).resizeMode || 'cover'; // Workaround for flow bug t7737108
     var tintColor = (style || {}).tintColor; // Workaround for flow bug t7737108
+
+    // This is a workaround for #8243665. RCTNetworkImageView does not support tintColor
+    // TODO: Remove this hack once we have one image implementation #8389274
+    if (isNetwork && tintColor) {
+      RawImage = RCTImageView;
+    }
 
     return (
       <RawImage

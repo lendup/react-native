@@ -16,9 +16,10 @@
 #import "RCTDefines.h"
 #import "RCTRedBox.h"
 
-@interface RCTBridge (Logging)
+@interface RCTBridge ()
 
-+ (void)logMessage:(NSString *)message level:(NSString *)level;
++ (RCTBridge *)currentBridge;
+- (void)logMessage:(NSString *)message level:(NSString *)level;
 
 @end
 
@@ -34,17 +35,16 @@ const char *RCTLogLevels[] = {
 static RCTLogFunction RCTCurrentLogFunction;
 static RCTLogLevel RCTCurrentLogThreshold;
 
-__attribute__((constructor))
-static void RCTLogSetup()
+RCTLogLevel RCTGetLogThreshold()
 {
-  RCTCurrentLogFunction = RCTDefaultLogFunction;
-
+  if (!RCTCurrentLogThreshold) {
 #if RCT_DEBUG
-  RCTCurrentLogThreshold = RCTLogLevelInfo - 1;
+    RCTCurrentLogThreshold = RCTLogLevelInfo - 1;
 #else
-  RCTCurrentLogThreshold = RCTLogLevelError;
+    RCTCurrentLogThreshold = RCTLogLevelError;
 #endif
-
+  }
+  return RCTCurrentLogThreshold;
 }
 
 RCTLogFunction RCTDefaultLogFunction = ^(
@@ -87,23 +87,26 @@ void RCTSetLogFunction(RCTLogFunction logFunction)
 
 RCTLogFunction RCTGetLogFunction()
 {
+  if (!RCTCurrentLogFunction) {
+    RCTCurrentLogFunction = RCTDefaultLogFunction;
+  }
   return RCTCurrentLogFunction;
 }
 
 void RCTAddLogFunction(RCTLogFunction logFunction)
 {
-  RCTLogFunction existing = RCTCurrentLogFunction;
+  RCTLogFunction existing = RCTGetLogFunction();
   if (existing) {
-    RCTCurrentLogFunction = ^(RCTLogLevel level,
-                              NSString *fileName,
-                              NSNumber *lineNumber,
-                              NSString *message) {
+    RCTSetLogFunction(^(RCTLogLevel level,
+                        NSString *fileName,
+                        NSNumber *lineNumber,
+                        NSString *message) {
 
       existing(level, fileName, lineNumber, message);
       logFunction(level, fileName, lineNumber, message);
-    };
+    });
   } else {
-    RCTCurrentLogFunction = logFunction;
+    RCTSetLogFunction(logFunction);
   }
 }
 
@@ -115,11 +118,11 @@ static RCTLogFunction RCTGetLocalLogFunction()
 {
   NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
   NSArray *functionStack = threadDictionary[RCTLogFunctionStack];
-  RCTLogFunction logFunction = [functionStack lastObject];
+  RCTLogFunction logFunction = functionStack.lastObject;
   if (logFunction) {
     return logFunction;
   }
-  return RCTCurrentLogFunction;
+  return RCTGetLogFunction();
 }
 
 void RCTPerformBlockWithLogFunction(void (^block)(void), RCTLogFunction logFunction)
@@ -127,7 +130,7 @@ void RCTPerformBlockWithLogFunction(void (^block)(void), RCTLogFunction logFunct
   NSMutableDictionary *threadDictionary = [NSThread currentThread].threadDictionary;
   NSMutableArray *functionStack = threadDictionary[RCTLogFunctionStack];
   if (!functionStack) {
-    functionStack = [[NSMutableArray alloc] init];
+    functionStack = [NSMutableArray new];
     threadDictionary[RCTLogFunctionStack] = functionStack;
   }
   [functionStack addObject:logFunction];
@@ -153,12 +156,12 @@ NSString *RCTFormatLog(
   NSString *message
 )
 {
-  NSMutableString *log = [[NSMutableString alloc] init];
+  NSMutableString *log = [NSMutableString new];
   if (timestamp) {
     static NSDateFormatter *formatter;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-      formatter = [[NSDateFormatter alloc] init];
+      formatter = [NSDateFormatter new];
       formatter.dateFormat = formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS ";
     });
     [log appendString:[formatter stringFromDate:timestamp]];
@@ -170,7 +173,7 @@ NSString *RCTFormatLog(
   [log appendFormat:@"[tid:%@]", RCTCurrentThreadName()];
 
   if (fileName) {
-    fileName = [fileName lastPathComponent];
+    fileName = fileName.lastPathComponent;
     if (lineNumber) {
       [log appendFormat:@"[%@:%@]", fileName, lineNumber];
     } else {
@@ -188,11 +191,12 @@ void _RCTLogFormat(
   RCTLogLevel level,
   const char *fileName,
   int lineNumber,
-  NSString *format, ...)
+  NSString *format, ...
+)
 {
   RCTLogFunction logFunction = RCTGetLocalLogFunction();
   BOOL log = RCT_DEBUG || (logFunction != nil);
-  if (log && level >= RCTCurrentLogThreshold) {
+  if (log && level >= RCTGetLogThreshold()) {
 
     // Get message
     va_list args;
@@ -217,18 +221,22 @@ void _RCTLogFormat(
           NSRange addressRange = [frameSymbols rangeOfString:address];
           NSString *methodName = [frameSymbols substringFromIndex:(addressRange.location + addressRange.length + 1)];
           if (idx == 1) {
-            NSString *file = [[@(fileName) componentsSeparatedByString:@"/"] lastObject];
+            NSString *file = [@(fileName) componentsSeparatedByString:@"/"].lastObject;
             [stack addObject:@{@"methodName": methodName, @"file": file, @"lineNumber": @(lineNumber)}];
           } else {
             [stack addObject:@{@"methodName": methodName}];
           }
         }
       }];
-      [[RCTRedBox sharedInstance] showErrorMessage:message withStack:stack];
+      dispatch_async(dispatch_get_main_queue(), ^{
+        // red box is thread safe, but by deferring to main queue we avoid a startup
+        // race condition that causes the module to be accessed before it has loaded
+        [[RCTBridge currentBridge].redBox showErrorMessage:message withStack:stack];
+      });
     }
 
     // Log to JS executor
-    [RCTBridge logMessage:message level:level ? @(RCTLogLevels[level - 1]) : @"info"];
+    [[RCTBridge currentBridge] logMessage:message level:level ? @(RCTLogLevels[level - 1]) : @"info"];
 
 #endif
 

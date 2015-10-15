@@ -9,12 +9,9 @@
 
 #import <Foundation/Foundation.h>
 
-@class RCTBridge;
+#import "RCTBridgeMethod.h"
 
-typedef NS_ENUM(NSUInteger, RCTJavaScriptFunctionKind) {
-  RCTJavaScriptFunctionKindNormal,
-  RCTJavaScriptFunctionKindAsync,
-};
+@class RCTBridge;
 
 typedef NS_ENUM(NSUInteger, RCTNullability) {
   RCTNullabilityUnspecified,
@@ -30,12 +27,11 @@ typedef NS_ENUM(NSUInteger, RCTNullability) {
 
 @end
 
-@interface RCTModuleMethod : NSObject
+@interface RCTModuleMethod : NSObject <RCTBridgeMethod>
 
-@property (nonatomic, copy, readonly) NSString *JSMethodName;
 @property (nonatomic, readonly) Class moduleClass;
 @property (nonatomic, readonly) SEL selector;
-@property (nonatomic, readonly) RCTJavaScriptFunctionKind functionKind;
+@property (nonatomic, readonly) RCTFunctionType functionType;
 
 - (instancetype)initWithObjCMethodName:(NSString *)objCMethodName
                           JSMethodName:(NSString *)JSMethodName

@@ -16,6 +16,8 @@
 
 #if RCT_DEV
 
+static BOOL isEnabled = YES;
+
 @implementation RCTDevLoadingView
 {
   UIWindow *_window;
@@ -26,6 +28,11 @@
 @synthesize bridge = _bridge;
 
 RCT_EXPORT_MODULE()
+
++ (void)setEnabled:(BOOL)enabled
+{
+  isEnabled = enabled;
+}
 
 - (instancetype)init
 {
@@ -57,11 +64,15 @@ RCT_EXPORT_MODULE()
 
 - (void)showWithURL:(NSURL *)URL
 {
+  if (!isEnabled) {
+    return;
+  }
+
   dispatch_async(dispatch_get_main_queue(), ^{
 
     _showDate = [NSDate date];
     if (!_window && !RCTRunningInTestEnvironment()) {
-      CGFloat screenWidth = [[UIScreen mainScreen] bounds].size.width;
+      CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
       _window = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, screenWidth, 22)];
       _window.backgroundColor = [UIColor blackColor];
       _window.windowLevel = UIWindowLevelStatusBar + 1;
@@ -76,10 +87,10 @@ RCT_EXPORT_MODULE()
     }
 
     NSString *source;
-    if ([URL isFileURL]) {
+    if (URL.fileURL) {
       source = @"pre-bundled file";
     } else {
-      source = [NSString stringWithFormat:@"%@:%@", [URL host], [URL port]];
+      source = [NSString stringWithFormat:@"%@:%@", URL.host, URL.port];
     }
 
     _label.text = [NSString stringWithFormat:@"Loading from %@...", source];
@@ -90,6 +101,10 @@ RCT_EXPORT_MODULE()
 
 - (void)hide
 {
+  if (!isEnabled) {
+    return;
+  }
+
   dispatch_async(dispatch_get_main_queue(), ^{
 
     const NSTimeInterval MIN_PRESENTED_TIME = 0.6;
@@ -115,6 +130,9 @@ RCT_EXPORT_MODULE()
 #else
 
 @implementation RCTDevLoadingView
+
++ (NSString *)moduleName { return nil; }
++ (void)setEnabled:(BOOL)enabled { }
 
 @end
 

@@ -12,6 +12,8 @@
 #import "RCTConvert.h"
 #import "RCTLog.h"
 #import "RCTUtils.h"
+#import "RCTBridge.h"
+#import "RCTUIManager.h"
 
 @interface RCTActionSheetManager () <UIActionSheetDelegate>
 
@@ -27,7 +29,7 @@ RCT_EXPORT_MODULE()
 - (instancetype)init
 {
   if ((self = [super init])) {
-    _callbacks = [[NSMutableDictionary alloc] init];
+    _callbacks = [NSMutableDictionary new];
   }
   return self;
 }
@@ -41,7 +43,12 @@ RCT_EXPORT_METHOD(showActionSheetWithOptions:(NSDictionary *)options
                   failureCallback:(__unused RCTResponseSenderBlock)failureCallback
                   successCallback:(RCTResponseSenderBlock)successCallback)
 {
-  UIActionSheet *actionSheet = [[UIActionSheet alloc] init];
+  if (RCTRunningInAppExtension()) {
+    RCTLogError(@"Unable to show action sheet from app extension");
+    return;
+  }
+  
+  UIActionSheet *actionSheet = [UIActionSheet new];
 
   actionSheet.title = options[@"title"];
 
@@ -60,7 +67,7 @@ RCT_EXPORT_METHOD(showActionSheetWithOptions:(NSDictionary *)options
 
   _callbacks[RCTKeyForInstance(actionSheet)] = successCallback;
 
-  UIWindow *appWindow = [[[UIApplication sharedApplication] delegate] window];
+  UIWindow *appWindow = RCTSharedApplication().delegate.window;
   if (appWindow == nil) {
     RCTLogError(@"Tried to display action sheet but there is no application window. options: %@", options);
     return;
@@ -81,12 +88,17 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions:(NSDictionary *)options
   if (URL) {
     [items addObject:URL];
   }
-  if ([items count] == 0) {
+  if (items.count == 0) {
     failureCallback(@[@"No `url` or `message` to share"]);
     return;
   }
+  if (RCTRunningInAppExtension()) {
+    failureCallback(@[@"Unable to show action sheet from app extension"]);
+    return;
+  }
+
   UIActivityViewController *share = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
-  UIViewController *ctrl = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+  UIViewController *ctrl = RCTSharedApplication().delegate.window.rootViewController;
 
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
 
@@ -110,6 +122,24 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions:(NSDictionary *)options
     };
   }
 
+  /*
+   * The `anchor` option takes a view to set as the anchor for the share
+   * popup to point to, on iPads running iOS 8. If it is not passed, it
+   * defaults to centering the share popup on screen without any arrows.
+   */
+  if ([share respondsToSelector:@selector(popoverPresentationController)]) {
+    share.popoverPresentationController.sourceView = ctrl.view;
+    NSNumber *anchorViewTag = [RCTConvert NSNumber:options[@"anchor"]];
+    if (anchorViewTag) {
+      UIView *anchorView = [self.bridge.uiManager viewForReactTag:anchorViewTag];
+      share.popoverPresentationController.sourceRect = [anchorView convertRect:anchorView.bounds toView:ctrl.view];
+    } else {
+      CGRect sourceRect = CGRectMake(ctrl.view.center.x, ctrl.view.center.y, 1, 1);
+      share.popoverPresentationController.sourceRect = sourceRect;
+      share.popoverPresentationController.permittedArrowDirections = 0;
+    }
+  }
+
   [ctrl presentViewController:share animated:YES completion:nil];
 }
 
@@ -126,7 +156,7 @@ RCT_EXPORT_METHOD(showShareActionSheetWithOptions:(NSDictionary *)options
     RCTLogWarn(@"No callback registered for action sheet: %@", actionSheet.title);
   }
 
-  [[[[UIApplication sharedApplication] delegate] window] makeKeyWindow];
+  [RCTSharedApplication().delegate.window makeKeyWindow];
 }
 
 #pragma mark Private

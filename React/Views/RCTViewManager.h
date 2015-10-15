@@ -11,10 +11,12 @@
 
 #import "RCTBridgeModule.h"
 #import "RCTConvert.h"
+#import "RCTComponent.h"
+#import "RCTDefines.h"
+#import "RCTEventDispatcher.h"
 #import "RCTLog.h"
 
 @class RCTBridge;
-@class RCTEventDispatcher;
 @class RCTShadowView;
 @class RCTSparseArray;
 @class RCTUIManager;
@@ -37,7 +39,16 @@ typedef void (^RCTViewManagerUIBlock)(RCTUIManager *uiManager, RCTSparseArray *v
  * return a fresh instance each time. The view module MUST NOT cache the returned
  * view and return the same instance for subsequent calls.
  */
-- (UIView *)view;
+- (UIView<RCTComponent> *)view;
+
+/**
+ * This method instantiates a native view using the props passed into the component.
+ * This method should be used when you need to know about specific props in order to
+ * initialize a view. By default, this just calls the -view method. Each prop will
+ * still be set individually, after the view is created. Like the -view method,
+ * -viewWithProps: should return a fresh instance each time it is called.
+ */
+- (UIView *)viewWithProps:(NSDictionary *)props;
 
 /**
  * This method instantiates a shadow view to be managed by the module. If omitted,
@@ -48,6 +59,8 @@ typedef void (^RCTViewManagerUIBlock)(RCTUIManager *uiManager, RCTSparseArray *v
 - (RCTShadowView *)shadowView;
 
 /**
+ * DEPRECATED: declare properties of type RCTBubblingEventBlock instead
+ *
  * Returns an array of names of events that can be sent by native views. This
  * should return bubbling, directly-dispatched event types. The event name
  * should not include a prefix such as 'on' or 'top', as this will be applied
@@ -60,6 +73,8 @@ typedef void (^RCTViewManagerUIBlock)(RCTUIManager *uiManager, RCTSparseArray *v
 - (NSArray *)customBubblingEventTypes;
 
 /**
+ * DEPRECATED: declare properties of type RCTDirectEventBlock instead
+ *
  * Returns an array of names of events that can be sent by native views. This
  * should return non-bubbling, directly-dispatched event types. The event name
  * should not include a prefix such as 'on' or 'top', as this will be applied

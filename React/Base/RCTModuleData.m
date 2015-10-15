@@ -38,18 +38,22 @@
     }
 
     // Must be done at init time due to race conditions
-    // Also, the queue setup isn't thread safe due ti static name cache
-    [self queue];
+    (void)self.queue;
   }
   return self;
 }
 
-RCT_NOT_IMPLEMENTED(-init);
+RCT_NOT_IMPLEMENTED(- (instancetype)init);
 
 - (NSArray *)methods
 {
   if (!_methods) {
-    NSMutableArray *moduleMethods = [[NSMutableArray alloc] init];
+    NSMutableArray *moduleMethods = [NSMutableArray new];
+
+    if ([_instance respondsToSelector:@selector(methodsToExport)]) {
+      [moduleMethods addObjectsFromArray:[_instance methodsToExport]];
+    }
+
     unsigned int methodCount;
     Method *methods = class_copyMethodList(object_getClass(_moduleClass), &methodCount);
 
@@ -59,7 +63,7 @@ RCT_NOT_IMPLEMENTED(-init);
       if ([NSStringFromSelector(selector) hasPrefix:@"__rct_export__"]) {
         IMP imp = method_getImplementation(method);
         NSArray *entries = ((NSArray *(*)(id, SEL))imp)(_moduleClass, selector);
-        RCTModuleMethod *moduleMethod =
+        id<RCTBridgeMethod> moduleMethod =
         [[RCTModuleMethod alloc] initWithObjCMethodName:entries[1]
                                            JSMethodName:entries[0]
                                             moduleClass:_moduleClass];
@@ -77,18 +81,18 @@ RCT_NOT_IMPLEMENTED(-init);
 
 - (NSDictionary *)config
 {
-  NSMutableDictionary *config = [[NSMutableDictionary alloc] init];
+  NSMutableDictionary *config = [NSMutableDictionary new];
   config[@"moduleID"] = _moduleID;
 
   if (_constants) {
     config[@"constants"] = _constants;
   }
 
-  NSMutableDictionary *methodconfig = [[NSMutableDictionary alloc] init];
-  [self.methods enumerateObjectsUsingBlock:^(RCTModuleMethod *method, NSUInteger idx, __unused BOOL *stop) {
+  NSMutableDictionary *methodconfig = [NSMutableDictionary new];
+  [self.methods enumerateObjectsUsingBlock:^(id<RCTBridgeMethod> method, NSUInteger idx, __unused BOOL *stop) {
     methodconfig[method.JSMethodName] = @{
       @"methodID": @(idx),
-      @"type": method.functionKind == RCTJavaScriptFunctionKindAsync ? @"remoteAsync" : @"remote",
+      @"type": method.functionType == RCTFunctionTypePromise ? @"remoteAsync" : @"remote",
     };
   }];
   config[@"methods"] = [methodconfig copy];
@@ -101,7 +105,7 @@ RCT_NOT_IMPLEMENTED(-init);
   if (!_queue) {
     BOOL implementsMethodQueue = [_instance respondsToSelector:@selector(methodQueue)];
     if (implementsMethodQueue) {
-      _queue = [_instance methodQueue];
+      _queue = _instance.methodQueue;
     }
     if (!_queue) {
 
